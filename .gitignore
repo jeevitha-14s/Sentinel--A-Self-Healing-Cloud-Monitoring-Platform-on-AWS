@@ -1,0 +1,41 @@
+# Secrets and environment
+.env
+*.env.*
+
+# AWS / Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+*.tfvars.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Docker
+*.tar
+
+# Lambda build artifacts
+*.zip
+
+# Node (GitHub Actions tooling)
+node_modules/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+*.md
