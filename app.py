@@ -87,7 +87,7 @@ def simulate_failure() -> ResponseReturnValue:
         return jsonify({"triggered": "error", "count": 5})
     if mode == "crash":
         logging.error("simulate-failure crash triggered")
-        sys.exit(1)
+        os._exit(1)
     return jsonify({"error": "unknown mode", "mode": mode}), 400
 
 

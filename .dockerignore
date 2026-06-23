@@ -1,0 +1,14 @@
+.git
+__pycache__
+*.pyc
+infra/
+*.tfstate
+*.tfvars
+.env
+docs/
+sentinel-build-plan.md
+*.md
+.DS_Store
+.claude/
+.venv/
+venv/
