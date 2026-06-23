@@ -39,3 +39,4 @@ Thumbs.db
 .idea/
 
 *.md
+!docs/**/*.md
