@@ -94,7 +94,7 @@ def simulate_failure() -> ResponseReturnValue:
 def _heartbeat_loop() -> None:
     import boto3  # lazy — only executed when HEARTBEAT_ENABLED=true
 
-    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    region = os.environ.get("AWS_DEFAULT_REGION", "ap-south-1")
     client = boto3.client("cloudwatch", region_name=region)
     while True:
         try:
