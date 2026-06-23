@@ -6,6 +6,7 @@ This list becomes the hand-written least-privilege policies in Feature 8.
 | Feature | Error / Action denied | Permission added | Scoped to |
 |---|---|---|---|
 | Spike | (none — used AmazonSSMManagedInstanceCore to observe; see notes below) | — | — |
+| Flask app (Feature 2) | **(anticipated)** cloudwatch:PutMetricData denied (heartbeat thread) | cloudwatch:PutMetricData | `Sentinel/*` namespace only — confirm in Feature 10 when heartbeat is enabled in production |
 
 ---
 
