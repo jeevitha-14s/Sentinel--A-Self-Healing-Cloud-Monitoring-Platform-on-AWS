@@ -191,231 +191,253 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 <title>Sentinel Dashboard</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f4;color:#1c1917;min-height:100vh}
-.header{background:#fff;border-bottom:1px solid #e7e5e4;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
-.header-title{font-size:1.25rem;font-weight:600;color:#1c1917}
-.header-sub{font-size:.8rem;color:#78716c;margin-top:2px}
-.badge{font-size:.75rem;padding:4px 12px;border-radius:20px;font-weight:500}
-.badge-ok{background:#dcfce7;color:#166534}
-.badge-alarm{background:#fee2e2;color:#991b1b}
-.main{max-width:900px;margin:2rem auto;padding:0 1.5rem}
-.alarm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
-.card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:border-color .3s}
-.card-label{font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
-.card-value{font-size:1.5rem;font-weight:600;transition:color .3s}
-.card.ok{border-left:4px solid #22c55e}
-.card.alarm{border-left:4px solid #ef4444;background:#fff8f8}
-.card.healthy{border-left:4px solid #22c55e}
-.val-ok{color:#16a34a}
-.val-alarm{color:#dc2626}
-.val-healthy{color:#16a34a}
-.val-unknown{color:#78716c}
-.hb-card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem}
-.hb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
-.hb-left .card-label{margin-bottom:.25rem}
-.hb-hint{font-size:.75rem;color:#a8a29e}
-.hb-value{font-size:2rem;font-weight:600;font-variant-numeric:tabular-nums;transition:color .3s}
-.hb-ok{color:#16a34a}
-.hb-warn{color:#d97706}
-.hb-danger{color:#dc2626}
-.hb-bar-track{height:6px;background:#f5f5f4;border-radius:3px;overflow:hidden}
-.hb-bar-fill{height:6px;border-radius:3px;transition:width .5s,background .3s}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem}
-.btn{padding:.75rem 1.25rem;border-radius:8px;border:none;font-size:.875rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:.5rem;justify-content:center;transition:opacity .15s,transform .1s}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1a1a1a;color:#e8e8e6;min-height:100vh;padding:1.5rem}
+.wrap{max-width:780px;margin:0 auto}
+.header{display:flex;align-items:center;justify-content:space-between;padding-bottom:1.5rem}
+.h-title{font-size:1.25rem;font-weight:600;color:#fafaf9}
+.h-sub{font-size:.8rem;color:#a1a1aa;margin-top:2px}
+.badge{font-size:.72rem;padding:4px 12px;border-radius:20px;font-weight:500;transition:all .3s}
+.badge-ok{background:#14321f;color:#4ade80}
+.badge-alarm{background:#3a1515;color:#f87171}
+.alarm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.card{background:#222220;border:0.5px solid #34342f;border-radius:12px;padding:1rem 1.25rem;transition:border-color .4s,background .4s}
+.card.ok{border-left:3px solid #22c55e}
+.card.alarm{border-left:3px solid #ef4444;background:#2a1a1a}
+.c-name{font-size:.8rem;color:#a1a1aa;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.c-val{font-size:1.35rem;font-weight:600;transition:color .4s}
+.c-val.ok{color:#4ade80}
+.c-val.alarm{color:#f87171}
+.c-val.unknown{color:#a1a1aa}
+.c-meta{font-size:.75rem;color:#71717a;margin-top:4px}
+.hb-card{background:#222220;border:0.5px solid #34342f;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.hb-row{display:flex;align-items:center;justify-content:space-between}
+.hb-label{font-size:.8rem;color:#a1a1aa}
+.hb-hint{font-size:.72rem;color:#71717a;margin-top:2px}
+.hb-counter{font-size:1.75rem;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;transition:color .3s}
+.hb-counter.ok{color:#4ade80}
+.hb-counter.warn{color:#fbbf24}
+.hb-counter.danger{color:#f87171}
+.hb-status{font-size:.72rem;color:#71717a;margin-top:2px;text-align:right}
+.hb-track{margin-top:10px;height:5px;background:#34342f;border-radius:3px;overflow:hidden}
+.hb-fill{height:5px;border-radius:3px;transition:width .5s,background .3s}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.25rem}
+.stat{background:#1e1e1c;border-radius:10px;padding:1rem}
+.stat-label{font-size:.75rem;color:#a1a1aa;margin-bottom:4px}
+.stat-val{font-size:1.4rem;font-weight:600;color:#fafaf9}
+.sec-label{font-size:.72rem;font-weight:500;color:#a1a1aa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem}
+.btn{padding:10px 16px;font-size:.82rem;font-weight:500;border-radius:8px;border:0.5px solid #44443e;background:#222220;color:#e8e8e6;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s,transform .1s;width:100%}
+.btn:hover{background:#2a2a27}
 .btn:active{transform:scale(.98)}
-.btn-error{background:#ef4444;color:#fff}
-.btn-error:hover{background:#dc2626}
-.btn-crash{background:#f97316;color:#fff}
-.btn-crash:hover{background:#ea6c00}
-.btn-feedback{font-size:.75rem;opacity:0;margin-left:auto;transition:opacity .3s}
-.btn-feedback.show{opacity:1}
-.section-label{font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
-.log-card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;overflow:hidden}
-.log-header{display:grid;grid-template-columns:180px 1fr;padding:.625rem 1rem;background:#f9f9f8;border-bottom:1px solid #e7e5e4;font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em}
-.log-empty{padding:1.25rem 1rem;font-size:.875rem;color:#a8a29e}
-.log-row{display:grid;grid-template-columns:180px 1fr;padding:.75rem 1rem;border-bottom:1px solid #f5f5f4;font-size:.875rem;animation:fadeIn .3s ease}
-.log-row:last-child{border-bottom:none}
-.log-time{color:#78716c;font-variant-numeric:tabular-nums}
-.log-event{color:#1c1917}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.footer{text-align:center;font-size:.75rem;color:#a8a29e;margin-top:1.5rem;padding-bottom:2rem}
+.btn.danger{border-color:#5a2a2a;color:#f87171}
+.btn.danger:hover{background:#2a1a1a}
+.btn-fb{font-size:.7rem;color:#4ade80;margin-left:auto;opacity:0;transition:opacity .3s}
+.btn-fb.show{opacity:1}
+.log-list{display:flex;flex-direction:column;gap:8px}
+.log-empty{font-size:.82rem;color:#71717a;padding:8px 0}
+.log-row{background:#222220;border:0.5px solid #34342f;border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.log-event{font-size:.82rem;font-weight:500;color:#fafaf9}
+.log-time{font-size:.72rem;color:#a1a1aa;margin-top:2px;font-variant-numeric:tabular-nums}
+.log-tag{font-size:.72rem;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.tag-ok{background:#14321f;color:#4ade80}
+.tag-warn{background:#3a2e15;color:#fbbf24}
+.footer{display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid #34342f}
+.foot-text{font-size:.72rem;color:#71717a}
+.foot-badge{font-size:.72rem;padding:3px 10px;border-radius:20px;background:#1e1e1c;color:#a1a1aa}
 </style>
 </head>
 <body>
-<div class="header">
-  <div>
-    <div class="header-title">Sentinel</div>
-    <div class="header-sub">Self-healing cloud platform &bull; ap-south-1</div>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="h-title">Sentinel</div>
+      <div class="h-sub">Self-healing platform &bull; ap-south-1</div>
+    </div>
+    <span class="badge badge-ok" id="global-badge">All systems healthy</span>
   </div>
-  <span class="badge badge-ok" id="global-badge">All systems healthy</span>
-</div>
-<div class="main">
+
   <div class="alarm-grid">
     <div class="card ok" id="card-errors">
-      <div class="card-label">Error alarm</div>
-      <div class="card-value val-ok" id="errors-val">OK</div>
+      <div class="c-name">&#9636; Error alarm</div>
+      <div class="c-val ok" id="errors-val">OK</div>
+      <div class="c-meta">AppErrors &ge; 1 in 60s &rarr; Lambda restart</div>
     </div>
     <div class="card ok" id="card-heartbeat">
-      <div class="card-label">Heartbeat alarm</div>
-      <div class="card-value val-ok" id="hb-alarm-val">OK</div>
-    </div>
-    <div class="card healthy" id="card-health">
-      <div class="card-label">App health</div>
-      <div class="card-value val-healthy" id="health-val">Healthy</div>
+      <div class="c-name">&#9825; Heartbeat alarm</div>
+      <div class="c-val ok" id="hb-alarm-val">OK</div>
+      <div class="c-meta">Missing data &times;2 &rarr; silent death caught</div>
     </div>
   </div>
 
   <div class="hb-card">
     <div class="hb-row">
-      <div class="hb-left">
-        <div class="card-label">Last heartbeat</div>
+      <div>
+        <div class="hb-label">Last heartbeat</div>
         <div class="hb-hint">publishes every 60s &bull; alarm fires after 2 missed</div>
       </div>
-      <div style="text-align:right">
-        <div class="hb-value hb-ok" id="hb-counter">--</div>
-        <div class="hb-hint" id="hb-status-text" style="margin-top:4px">waiting</div>
+      <div>
+        <div class="hb-counter ok" id="hb-counter">--</div>
+        <div class="hb-status" id="hb-status">waiting</div>
       </div>
     </div>
-    <div class="hb-bar-track">
-      <div class="hb-bar-fill" id="hb-bar" style="width:0%;background:#22c55e"></div>
-    </div>
+    <div class="hb-track"><div class="hb-fill" id="hb-fill" style="width:0%;background:#22c55e"></div></div>
   </div>
 
-  <div class="btn-row">
-    <button class="btn btn-error" onclick="triggerError()">
-      &#9888; Trigger error flood
-      <span class="btn-feedback" id="fb-error">triggered</span>
-    </button>
-    <button class="btn btn-crash" onclick="triggerCrash()">
-      &#9632; Trigger crash
-      <span class="btn-feedback" id="fb-crash">crash triggered</span>
-    </button>
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div></div>
+    <div class="stat"><div class="stat-label">Auto-healed</div><div class="stat-val" id="stat-healed">0</div></div>
+    <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div></div>
   </div>
 
-  <div class="section-label">Incident log</div>
-  <div class="log-card">
-    <div class="log-header">
-      <span>Time (UTC)</span>
-      <span>Event</span>
-    </div>
-    <div id="log-body">
-      <div class="log-empty">No incidents yet &mdash; trigger one above</div>
-    </div>
+  <div class="sec-label">Demo controls</div>
+  <div class="btn-grid">
+    <button class="btn danger" onclick="triggerError()">&#9888; Trigger error flood<span class="btn-fb" id="fb-error">triggered</span></button>
+    <button class="btn danger" onclick="triggerCrash()">&#9632; Trigger silent crash<span class="btn-fb" id="fb-crash">crash triggered</span></button>
+    <button class="btn" onclick="checkHealth()">&#9825; Check /health<span class="btn-fb" id="fb-health"></span></button>
+    <button class="btn" onclick="updateStatus(true)">&#8635; Refresh alarms<span class="btn-fb" id="fb-refresh">done</span></button>
   </div>
 
-  <div class="footer" id="footer-ts">Auto-refreshes every 30s</div>
+  <div class="sec-label">Incident log</div>
+  <div class="log-list" id="log-list">
+    <div class="log-empty">No incidents yet &mdash; trigger one above</div>
+  </div>
+
+  <div class="footer">
+    <span class="foot-text" id="foot-text">Auto-refreshes every 30s</span>
+    <span class="foot-badge">sentinel-app &bull; 35.154.34.86</span>
+  </div>
 </div>
 
 <script>
 var hbSeconds = null;
 var hbTicker = null;
+var crashed = false;
 
-function setAlarmCard(cardId, valId, state) {
+function setCard(cardId, valId, state) {
   var card = document.getElementById(cardId);
   var val = document.getElementById(valId);
-  card.className = "card " + (state === "OK" ? "ok" : state === "ALARM" ? "alarm" : "ok");
-  val.className = "card-value " + (state === "OK" ? "val-ok" : state === "ALARM" ? "val-alarm" : "val-unknown");
+  if (state === "ALARM") {
+    card.className = "card alarm";
+    val.className = "c-val alarm";
+  } else if (state === "OK") {
+    card.className = "card ok";
+    val.className = "c-val ok";
+  } else {
+    card.className = "card ok";
+    val.className = "c-val unknown";
+  }
   val.textContent = state;
 }
 
-function updateGlobalBadge(errState, hbState) {
-  var badge = document.getElementById("global-badge");
-  if (errState === "ALARM" || hbState === "ALARM") {
-    badge.className = "badge badge-alarm";
-    badge.textContent = "Incident in progress";
+function setBadge(err, hb) {
+  var b = document.getElementById("global-badge");
+  if (err === "ALARM" || hb === "ALARM") {
+    b.className = "badge badge-alarm";
+    b.textContent = "Incident in progress";
   } else {
-    badge.className = "badge badge-ok";
-    badge.textContent = "All systems healthy";
+    b.className = "badge badge-ok";
+    b.textContent = "All systems healthy";
   }
 }
 
-function updateHbUI() {
+function updateHb() {
+  var c = document.getElementById("hb-counter");
+  var f = document.getElementById("hb-fill");
+  var s = document.getElementById("hb-status");
   if (hbSeconds === null) {
-    document.getElementById("hb-counter").textContent = "--";
-    document.getElementById("hb-status-text").textContent = "heartbeat not yet received";
-    document.getElementById("hb-bar").style.width = "0%";
+    c.textContent = "--"; c.className = "hb-counter ok";
+    f.style.width = "0%"; s.textContent = "heartbeat not yet received";
     return;
   }
-  var counter = document.getElementById("hb-counter");
-  var bar = document.getElementById("hb-bar");
-  var statusText = document.getElementById("hb-status-text");
-  counter.textContent = hbSeconds + "s ago";
+  c.textContent = hbSeconds + "s ago";
   var pct = Math.min((hbSeconds / 120) * 100, 100);
   if (hbSeconds < 70) {
-    counter.className = "hb-value hb-ok";
-    bar.style.background = "#22c55e";
-    bar.style.width = Math.min((hbSeconds / 60) * 60, 60) + "%";
-    statusText.textContent = "healthy";
+    c.className = "hb-counter ok"; f.style.background = "#22c55e";
+    f.style.width = Math.min((hbSeconds / 60) * 60, 60) + "%"; s.textContent = "healthy";
   } else if (hbSeconds < 120) {
-    counter.className = "hb-value hb-warn";
-    bar.style.background = "#f59e0b";
-    bar.style.width = pct + "%";
-    statusText.textContent = "first window missed — watching";
+    c.className = "hb-counter warn"; f.style.background = "#f59e0b";
+    f.style.width = pct + "%"; s.textContent = "first window missed — watching";
   } else {
-    counter.className = "hb-value hb-danger";
-    bar.style.background = "#ef4444";
-    bar.style.width = "100%";
-    statusText.textContent = "alarm firing";
+    c.className = "hb-counter danger"; f.style.background = "#ef4444";
+    f.style.width = "100%"; s.textContent = "alarm firing — Lambda restarting";
   }
 }
 
-function startHbTicker(serverSeconds) {
+function startTicker(serverSeconds) {
   clearInterval(hbTicker);
   hbSeconds = serverSeconds;
-  hbTicker = setInterval(function() {
-    if (hbSeconds !== null) { hbSeconds++; updateHbUI(); }
-  }, 1000);
-  updateHbUI();
+  hbTicker = setInterval(function(){ if (hbSeconds !== null){ hbSeconds++; updateHb(); } }, 1000);
+  updateHb();
 }
 
 function renderLog(incidents) {
-  var body = document.getElementById("log-body");
+  var list = document.getElementById("log-list");
   if (!incidents || incidents.length === 0) {
-    body.innerHTML = "<div class=\\"log-empty\\">No incidents yet &mdash; trigger one above</div>";
+    list.innerHTML = "<div class=\\"log-empty\\">No incidents yet &mdash; trigger one above</div>";
     return;
   }
-  body.innerHTML = incidents.map(function(inc) {
-    return "<div class=\\"log-row\\"><span class=\\"log-time\\">" + inc.ts.replace("T"," ").replace("Z","") + "</span><span class=\\"log-event\\">" + inc.event + "</span></div>";
+  list.innerHTML = incidents.map(function(inc){
+    var human = inc.event.toLowerCase().indexOf("human") !== -1;
+    var tag = human ? "<span class=\\"log-tag tag-warn\\">human needed</span>" : "<span class=\\"log-tag tag-ok\\">logged</span>";
+    var t = inc.ts.replace("T"," ").replace("Z","");
+    return "<div class=\\"log-row\\"><div><div class=\\"log-event\\">" + inc.event + "</div><div class=\\"log-time\\">" + t + "</div></div>" + tag + "</div>";
   }).join("");
 }
 
-function updateStatus() {
-  fetch("/status")
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      setAlarmCard("card-errors", "errors-val", data.error_alarm || "?");
-      setAlarmCard("card-heartbeat", "hb-alarm-val", data.heartbeat_alarm || "?");
-      updateGlobalBadge(data.error_alarm, data.heartbeat_alarm);
-      if (data.seconds_since_heartbeat !== null && data.seconds_since_heartbeat !== undefined) {
-        startHbTicker(data.seconds_since_heartbeat);
-      }
-      renderLog(data.incidents);
-      document.getElementById("footer-ts").textContent = "Last updated: " + new Date().toLocaleTimeString() + " · auto-refreshes every 30s";
-    })
-    .catch(function(e){ console.error("status fetch failed", e); });
+function updateStats(incidents) {
+  if (!incidents) return;
+  var total = incidents.length;
+  var human = incidents.filter(function(i){ return i.event.toLowerCase().indexOf("human") !== -1; }).length;
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-healed").textContent = total - human;
+  document.getElementById("stat-human").textContent = human;
+}
+
+function updateStatus(manual) {
+  fetch("/status").then(function(r){ return r.json(); }).then(function(d){
+    setCard("card-errors","errors-val", d.error_alarm || "?");
+    setCard("card-heartbeat","hb-alarm-val", d.heartbeat_alarm || "?");
+    setBadge(d.error_alarm, d.heartbeat_alarm);
+    if (d.seconds_since_heartbeat !== null && d.seconds_since_heartbeat !== undefined) {
+      crashed = false;
+      startTicker(d.seconds_since_heartbeat);
+    }
+    renderLog(d.incidents);
+    updateStats(d.incidents);
+    document.getElementById("foot-text").textContent = "Last updated: " + new Date().toLocaleTimeString() + " · auto-refreshes every 30s";
+    if (manual) feedback("fb-refresh","done");
+  }).catch(function(e){ console.error(e); });
 }
 
 function feedback(id, text) {
   var el = document.getElementById(id);
-  el.textContent = text;
+  if (text) el.textContent = text;
   el.classList.add("show");
   setTimeout(function(){ el.classList.remove("show"); }, 2500);
 }
 
 function triggerError() {
-  fetch("/simulate-failure?mode=error")
-    .then(function(){ feedback("fb-error", "triggered — watch alarm"); })
-    .catch(function(){ feedback("fb-error", "sent"); });
+  feedback("fb-error","triggered — watch alarm");
+  fetch("/simulate-failure?mode=error").catch(function(){});
 }
 
 function triggerCrash() {
-  fetch("/simulate-failure?mode=crash")
-    .then(function(){ feedback("fb-crash", "crash triggered"); })
-    .catch(function(){ feedback("fb-crash", "crash triggered — container restarting"); });
+  feedback("fb-crash","crash triggered");
+  crashed = true;
+  hbSeconds = 60;
+  updateHb();
+  fetch("/simulate-failure?mode=crash").catch(function(){});
+}
+
+function checkHealth() {
+  fetch("/health").then(function(r){
+    feedback("fb-health", r.ok ? "200 OK" : "down");
+  }).catch(function(){ feedback("fb-health","restarting..."); });
 }
 
 updateStatus();
-setInterval(updateStatus, 30000);
+setInterval(function(){ updateStatus(false); }, 30000);
 </script>
 </body>
 </html>'''
