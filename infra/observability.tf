@@ -30,5 +30,5 @@ resource "aws_cloudwatch_metric_alarm" "app_errors" {
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
 
-  alarm_actions = var.incidents_topic_arn != "" ? [var.incidents_topic_arn] : []
+  alarm_actions = [aws_sns_topic.incidents.arn]
 }
