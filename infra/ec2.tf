@@ -112,6 +112,24 @@ resource "aws_iam_role_policy" "heartbeat_metric" {
   })
 }
 
+resource "aws_iam_role_policy" "cloudwatch_describe" {
+  name = "cloudwatch-describe"
+  role = aws_iam_role.sentinel_ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "DescribeAlarms"
+      Effect = "Allow"
+      Action = "cloudwatch:DescribeAlarms"
+      Resource = [
+        aws_cloudwatch_metric_alarm.app_errors.arn,
+        aws_cloudwatch_metric_alarm.heartbeat_missing.arn,
+      ]
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "sentinel_ec2" {
   name = "sentinel-ec2"
   role = aws_iam_role.sentinel_ec2.name
