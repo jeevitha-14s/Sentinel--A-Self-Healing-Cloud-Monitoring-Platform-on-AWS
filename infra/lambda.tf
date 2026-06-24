@@ -41,7 +41,7 @@ resource "aws_iam_role_policy" "sentinel_lambda" {
         Effect = "Allow"
         Action = "ssm:SendCommand"
         Resource = [
-          "arn:aws:ssm:ap-south-1::document/AWS-RunShellScript",
+          "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript",
           aws_instance.sentinel.arn,
         ]
       },
@@ -66,8 +66,8 @@ resource "aws_iam_role_policy" "sentinel_lambda" {
           "logs:PutLogEvents",
         ]
         Resource = [
-          "arn:aws:logs:ap-south-1:262439760394:log-group:/aws/lambda/${local.lambda_function_name}",
-          "arn:aws:logs:ap-south-1:262439760394:log-group:/aws/lambda/${local.lambda_function_name}:*",
+          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${local.lambda_function_name}",
+          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${local.lambda_function_name}:*",
         ]
       },
     ]
