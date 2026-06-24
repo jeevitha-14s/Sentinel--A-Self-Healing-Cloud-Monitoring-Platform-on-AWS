@@ -1,7 +1,6 @@
 # IAM Scratch — AccessDenied Log
 
 Each row = one real AccessDenied hit during the spike (and later features).
-This list becomes the hand-written least-privilege policies in Feature 8.
 
 | Feature | Error / Action denied | Permission added | Scoped to |
 |---|---|---|---|
@@ -10,6 +9,7 @@ This list becomes the hand-written least-privilege policies in Feature 8.
 | CI/CD (Feature 4) | `logs:CreateLogStream` denied — awslogs driver calls CreateLogStream at container start even with `awslogs-create-group=false`; container startup aborts | `logs:CreateLogStream`, `logs:PutLogEvents` | `arn:aws:logs:ap-south-1:262439760394:log-group:/sentinel/app:*` — add in Feature 5 when log group is created |
 | CloudWatch logs (Feature 5) | `logs:CreateLogStream` AccessDenied — policy scoped `CreateLogStream` to the log group ARN; IAM evaluates it against the **log stream ARN** (`log-group:/sentinel/app:log-stream:sentinel-app`). Container refused to start. | Moved `CreateLogStream` (and `PutLogEvents`) to `:log-stream:*` resource; kept `DescribeLogStreams` on log group ARN | `aws_cloudwatch_log_group.sentinel.arn` for DescribeLogStreams; `${arn}:log-stream:*` for CreateLogStream + PutLogEvents |
 | SNS topics (Feature 7) | **(anticipated)** `sns:Publish` denied when Lambda publishes to `sentinel-alerts` | `sns:Publish` | `aws_sns_topic.alerts` ARN only — add to Lambda execution role in Feature 8 |
+| Lambda remediation (Feature 8) | Applied from prior AccessDenied documentation (see rows above + Feature 1 spike notes). No new errors hit — permissions derived from known patterns. | `ssm:SendCommand` (Spike), `sns:Publish` (Feature 7), `logs:CreateLogGroup/Stream/PutLogEvents` (Feature 5 pattern) | `ssm:SendCommand` → document ARN + instance ARN; `sns:Publish` → `sentinel-alerts` ARN only; `logs:*` → `/aws/lambda/sentinel-remediation` log group ARN + `:*`; `ssm:GetCommandInvocation` → `*` (no resource-level scope available) |
 
 ---
 

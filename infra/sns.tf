@@ -11,3 +11,9 @@ resource "aws_sns_topic_subscription" "alerts_email" {
   protocol  = "email"
   endpoint  = "sjeevitha679@gmail.com"
 }
+
+resource "aws_sns_topic_subscription" "incidents_lambda" {
+  topic_arn = aws_sns_topic.incidents.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.remediation.arn
+}
