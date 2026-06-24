@@ -10,10 +10,13 @@ terraform {
 }
 
 variable "aws_region" {
-  type    = string
-  default = "ap-south-1"
+  type        = string
+  description = "AWS region to deploy Sentinel resources into."
+  default     = "ap-south-1"
 }
 
 provider "aws" {
   region = var.aws_region
 }
+
+data "aws_caller_identity" "current" {}
