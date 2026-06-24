@@ -8,6 +8,7 @@ This list becomes the hand-written least-privilege policies in Feature 8.
 | Spike | (none — used AmazonSSMManagedInstanceCore to observe; see notes below) | — | — |
 | Flask app (Feature 2) | **(anticipated)** cloudwatch:PutMetricData denied (heartbeat thread) | cloudwatch:PutMetricData | `Sentinel/*` namespace only — confirm in Feature 10 when heartbeat is enabled in production |
 | CI/CD (Feature 4) | `logs:CreateLogStream` denied — awslogs driver calls CreateLogStream at container start even with `awslogs-create-group=false`; container startup aborts | `logs:CreateLogStream`, `logs:PutLogEvents` | `arn:aws:logs:ap-south-1:262439760394:log-group:/sentinel/app:*` — add in Feature 5 when log group is created |
+| CloudWatch logs (Feature 5) | `logs:CreateLogStream` AccessDenied — policy scoped `CreateLogStream` to the log group ARN; IAM evaluates it against the **log stream ARN** (`log-group:/sentinel/app:log-stream:sentinel-app`). Container refused to start. | Moved `CreateLogStream` (and `PutLogEvents`) to `:log-stream:*` resource; kept `DescribeLogStreams` on log group ARN | `aws_cloudwatch_log_group.sentinel.arn` for DescribeLogStreams; `${arn}:log-stream:*` for CreateLogStream + PutLogEvents |
 
 ---
 
