@@ -78,16 +78,16 @@ resource "aws_iam_role_policy" "awslogs" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogStream",
-          "logs:DescribeLogStreams",
-        ]
+        Effect   = "Allow"
+        Action   = "logs:DescribeLogStreams"
         Resource = aws_cloudwatch_log_group.sentinel.arn
       },
       {
-        Effect   = "Allow"
-        Action   = "logs:PutLogEvents"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ]
         Resource = "${aws_cloudwatch_log_group.sentinel.arn}:log-stream:*"
       },
     ]
