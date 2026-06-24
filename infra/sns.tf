@@ -9,7 +9,7 @@ resource "aws_sns_topic" "alerts" {
 resource "aws_sns_topic_subscription" "alerts_email" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"
-  endpoint  = "sjeevitha679@gmail.com"
+  endpoint  = var.alert_email
 }
 
 resource "aws_sns_topic_subscription" "incidents_lambda" {

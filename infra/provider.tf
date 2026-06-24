@@ -15,6 +15,12 @@ variable "aws_region" {
   default     = "ap-south-1"
 }
 
+variable "alert_email" {
+  type        = string
+  description = "Email address for SNS alert subscription."
+  default     = "sjeevitha679@gmail.com"
+}
+
 provider "aws" {
   region = var.aws_region
 }
