@@ -16,3 +16,19 @@ resource "aws_cloudwatch_log_metric_filter" "app_errors" {
     default_value = "0"
   }
 }
+
+resource "aws_cloudwatch_metric_alarm" "app_errors" {
+  alarm_name          = "sentinel-app-errors"
+  alarm_description   = "Fires once per incident (OK→ALARM). ALARM→ALARM does not re-fire — free dedup, no state store."
+
+  namespace           = "Sentinel"
+  metric_name         = "AppErrors"
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = var.incidents_topic_arn != "" ? [var.incidents_topic_arn] : []
+}
