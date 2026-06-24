@@ -183,158 +183,242 @@ def start_heartbeat() -> None:
     logging.info("heartbeat thread started")
 
 
-DASHBOARD_HTML = """<!DOCTYPE html>
+DASHBOARD_HTML = '''<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sentinel Dashboard</title>
-  <style>
-    body { font-family: sans-serif; max-width: 860px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
-    h1 { margin-bottom: 4px; }
-    .subtitle { color: #666; margin-bottom: 24px; font-size: 0.9em; }
-    .cards { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
-    .card { flex: 1 1 180px; border-radius: 8px; padding: 16px 20px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-    .card .label { font-size: 0.8em; color: #555; text-transform: uppercase; letter-spacing: .05em; }
-    .card .value { font-size: 1.5em; font-weight: 700; margin-top: 6px; }
-    .ok    { color: #1a8a3a; }
-    .alarm { color: #c0392b; }
-    .other { color: #888; }
-    .buttons { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-    button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em; font-weight: 600; }
-    #btn-error { background: #e67e22; color: #fff; }
-    #btn-crash { background: #c0392b; color: #fff; }
-    .feedback { font-size: 0.85em; margin-top: 6px; color: #555; min-height: 1.2em; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); overflow: hidden; }
-    th { background: #e8e8e8; text-align: left; padding: 10px 14px; font-size: 0.8em; text-transform: uppercase; letter-spacing: .05em; }
-    td { padding: 9px 14px; border-top: 1px solid #eee; font-size: 0.9em; }
-    .empty { color: #aaa; font-style: italic; }
-    .poll-note { font-size: 0.78em; color: #aaa; margin-top: 8px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sentinel Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f4;color:#1c1917;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e7e5e4;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:1.25rem;font-weight:600;color:#1c1917}
+.header-sub{font-size:.8rem;color:#78716c;margin-top:2px}
+.badge{font-size:.75rem;padding:4px 12px;border-radius:20px;font-weight:500}
+.badge-ok{background:#dcfce7;color:#166534}
+.badge-alarm{background:#fee2e2;color:#991b1b}
+.main{max-width:900px;margin:2rem auto;padding:0 1.5rem}
+.alarm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:border-color .3s}
+.card-label{font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.card-value{font-size:1.5rem;font-weight:600;transition:color .3s}
+.card.ok{border-left:4px solid #22c55e}
+.card.alarm{border-left:4px solid #ef4444;background:#fff8f8}
+.card.healthy{border-left:4px solid #22c55e}
+.val-ok{color:#16a34a}
+.val-alarm{color:#dc2626}
+.val-healthy{color:#16a34a}
+.val-unknown{color:#78716c}
+.hb-card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem}
+.hb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.hb-left .card-label{margin-bottom:.25rem}
+.hb-hint{font-size:.75rem;color:#a8a29e}
+.hb-value{font-size:2rem;font-weight:600;font-variant-numeric:tabular-nums;transition:color .3s}
+.hb-ok{color:#16a34a}
+.hb-warn{color:#d97706}
+.hb-danger{color:#dc2626}
+.hb-bar-track{height:6px;background:#f5f5f4;border-radius:3px;overflow:hidden}
+.hb-bar-fill{height:6px;border-radius:3px;transition:width .5s,background .3s}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem}
+.btn{padding:.75rem 1.25rem;border-radius:8px;border:none;font-size:.875rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:.5rem;justify-content:center;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.98)}
+.btn-error{background:#ef4444;color:#fff}
+.btn-error:hover{background:#dc2626}
+.btn-crash{background:#f97316;color:#fff}
+.btn-crash:hover{background:#ea6c00}
+.btn-feedback{font-size:.75rem;opacity:0;margin-left:auto;transition:opacity .3s}
+.btn-feedback.show{opacity:1}
+.section-label{font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.log-card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;overflow:hidden}
+.log-header{display:grid;grid-template-columns:180px 1fr;padding:.625rem 1rem;background:#f9f9f8;border-bottom:1px solid #e7e5e4;font-size:.75rem;font-weight:500;color:#78716c;text-transform:uppercase;letter-spacing:.05em}
+.log-empty{padding:1.25rem 1rem;font-size:.875rem;color:#a8a29e}
+.log-row{display:grid;grid-template-columns:180px 1fr;padding:.75rem 1rem;border-bottom:1px solid #f5f5f4;font-size:.875rem;animation:fadeIn .3s ease}
+.log-row:last-child{border-bottom:none}
+.log-time{color:#78716c;font-variant-numeric:tabular-nums}
+.log-event{color:#1c1917}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.footer{text-align:center;font-size:.75rem;color:#a8a29e;margin-top:1.5rem;padding-bottom:2rem}
+</style>
 </head>
 <body>
-  <h1>Sentinel Dashboard</h1>
-  <p class="subtitle">Live alarm states · auto-refresh every 30 s</p>
-
-  <div class="cards">
-    <div class="card">
-      <div class="label">Error Alarm</div>
-      <div class="value other" id="error-alarm">—</div>
+<div class="header">
+  <div>
+    <div class="header-title">Sentinel</div>
+    <div class="header-sub">Self-healing cloud platform &bull; ap-south-1</div>
+  </div>
+  <span class="badge badge-ok" id="global-badge">All systems healthy</span>
+</div>
+<div class="main">
+  <div class="alarm-grid">
+    <div class="card ok" id="card-errors">
+      <div class="card-label">Error alarm</div>
+      <div class="card-value val-ok" id="errors-val">OK</div>
     </div>
-    <div class="card">
-      <div class="label">Heartbeat Alarm</div>
-      <div class="value other" id="heartbeat-alarm">—</div>
+    <div class="card ok" id="card-heartbeat">
+      <div class="card-label">Heartbeat alarm</div>
+      <div class="card-value val-ok" id="hb-alarm-val">OK</div>
     </div>
-    <div class="card">
-      <div class="label">App Healthy</div>
-      <div class="value ok" id="app-healthy">—</div>
-    </div>
-    <div class="card">
-      <div class="label">Last Heartbeat</div>
-      <div class="value other" id="heartbeat-age">—</div>
+    <div class="card healthy" id="card-health">
+      <div class="card-label">App health</div>
+      <div class="card-value val-healthy" id="health-val">Healthy</div>
     </div>
   </div>
 
-  <div class="buttons">
-    <div>
-      <button id="btn-error">Trigger Error Flood</button>
-      <div class="feedback" id="fb-error"></div>
+  <div class="hb-card">
+    <div class="hb-row">
+      <div class="hb-left">
+        <div class="card-label">Last heartbeat</div>
+        <div class="hb-hint">publishes every 60s &bull; alarm fires after 2 missed</div>
+      </div>
+      <div style="text-align:right">
+        <div class="hb-value hb-ok" id="hb-counter">--</div>
+        <div class="hb-hint" id="hb-status-text" style="margin-top:4px">waiting</div>
+      </div>
     </div>
-    <div>
-      <button id="btn-crash">Trigger Crash</button>
-      <div class="feedback" id="fb-crash"></div>
+    <div class="hb-bar-track">
+      <div class="hb-bar-fill" id="hb-bar" style="width:0%;background:#22c55e"></div>
     </div>
   </div>
 
-  <table>
-    <thead><tr><th>Time (UTC)</th><th>Event</th></tr></thead>
-    <tbody id="incident-body">
-      <tr><td colspan="2" class="empty">No events yet</td></tr>
-    </tbody>
-  </table>
-  <p class="poll-note" id="last-updated"></p>
+  <div class="btn-row">
+    <button class="btn btn-error" onclick="triggerError()">
+      &#9888; Trigger error flood
+      <span class="btn-feedback" id="fb-error">triggered</span>
+    </button>
+    <button class="btn btn-crash" onclick="triggerCrash()">
+      &#9632; Trigger crash
+      <span class="btn-feedback" id="fb-crash">crash triggered</span>
+    </button>
+  </div>
 
-  <script>
-    const COLOR = { OK: 'ok', ALARM: 'alarm' };
-    function stateClass(v) { return COLOR[v] || 'other'; }
+  <div class="section-label">Incident log</div>
+  <div class="log-card">
+    <div class="log-header">
+      <span>Time (UTC)</span>
+      <span>Event</span>
+    </div>
+    <div id="log-body">
+      <div class="log-empty">No incidents yet &mdash; trigger one above</div>
+    </div>
+  </div>
 
-    let heartbeatAge = null;
+  <div class="footer" id="footer-ts">Auto-refreshes every 30s</div>
+</div>
 
-    function updateStatus() {
-      fetch('/status')
-        .then(r => r.json())
-        .then(d => {
-          function setCard(id, val) {
-            const el = document.getElementById(id);
-            el.textContent = val;
-            el.className = 'value ' + stateClass(val);
-          }
-          setCard('error-alarm', d.error_alarm);
-          setCard('heartbeat-alarm', d.heartbeat_alarm);
+<script>
+var hbSeconds = null;
+var hbTicker = null;
 
-          const healthy = document.getElementById('app-healthy');
-          healthy.textContent = d.app_healthy ? 'Healthy' : 'Unhealthy';
-          healthy.className = 'value ' + (d.app_healthy ? 'ok' : 'alarm');
+function setAlarmCard(cardId, valId, state) {
+  var card = document.getElementById(cardId);
+  var val = document.getElementById(valId);
+  card.className = "card " + (state === "OK" ? "ok" : state === "ALARM" ? "alarm" : "ok");
+  val.className = "card-value " + (state === "OK" ? "val-ok" : state === "ALARM" ? "val-alarm" : "val-unknown");
+  val.textContent = state;
+}
 
-          heartbeatAge = d.seconds_since_heartbeat;
-          renderHeartbeat();
+function updateGlobalBadge(errState, hbState) {
+  var badge = document.getElementById("global-badge");
+  if (errState === "ALARM" || hbState === "ALARM") {
+    badge.className = "badge badge-alarm";
+    badge.textContent = "Incident in progress";
+  } else {
+    badge.className = "badge badge-ok";
+    badge.textContent = "All systems healthy";
+  }
+}
 
-          const tbody = document.getElementById('incident-body');
-          if (d.incidents && d.incidents.length > 0) {
-            tbody.innerHTML = d.incidents.map(ev =>
-              '<tr><td>' + ev.ts + '</td><td>' + ev.event + '</td></tr>'
-            ).join('');
-          } else {
-            tbody.innerHTML = '<tr><td colspan="2" class="empty">No events yet</td></tr>';
-          }
-          document.getElementById('last-updated').textContent =
-            'Last fetched: ' + d.last_updated;
-        })
-        .catch(() => {
-          document.getElementById('last-updated').textContent =
-            'Fetch failed — retrying in 30 s';
-        });
-    }
+function updateHbUI() {
+  if (hbSeconds === null) {
+    document.getElementById("hb-counter").textContent = "--";
+    document.getElementById("hb-status-text").textContent = "heartbeat not yet received";
+    document.getElementById("hb-bar").style.width = "0%";
+    return;
+  }
+  var counter = document.getElementById("hb-counter");
+  var bar = document.getElementById("hb-bar");
+  var statusText = document.getElementById("hb-status-text");
+  counter.textContent = hbSeconds + "s ago";
+  var pct = Math.min((hbSeconds / 120) * 100, 100);
+  if (hbSeconds < 70) {
+    counter.className = "hb-value hb-ok";
+    bar.style.background = "#22c55e";
+    bar.style.width = Math.min((hbSeconds / 60) * 60, 60) + "%";
+    statusText.textContent = "healthy";
+  } else if (hbSeconds < 120) {
+    counter.className = "hb-value hb-warn";
+    bar.style.background = "#f59e0b";
+    bar.style.width = pct + "%";
+    statusText.textContent = "first window missed — watching";
+  } else {
+    counter.className = "hb-value hb-danger";
+    bar.style.background = "#ef4444";
+    bar.style.width = "100%";
+    statusText.textContent = "alarm firing";
+  }
+}
 
-    function renderHeartbeat() {
-      const el = document.getElementById('heartbeat-age');
-      if (heartbeatAge === null) {
-        el.textContent = 'disabled';
-        el.className = 'value other';
-      } else {
-        el.textContent = heartbeatAge + ' s ago';
-        el.className = 'value ' + (heartbeatAge < 120 ? 'ok' : 'alarm');
+function startHbTicker(serverSeconds) {
+  clearInterval(hbTicker);
+  hbSeconds = serverSeconds;
+  hbTicker = setInterval(function() {
+    if (hbSeconds !== null) { hbSeconds++; updateHbUI(); }
+  }, 1000);
+  updateHbUI();
+}
+
+function renderLog(incidents) {
+  var body = document.getElementById("log-body");
+  if (!incidents || incidents.length === 0) {
+    body.innerHTML = "<div class=\\"log-empty\\">No incidents yet &mdash; trigger one above</div>";
+    return;
+  }
+  body.innerHTML = incidents.map(function(inc) {
+    return "<div class=\\"log-row\\"><span class=\\"log-time\\">" + inc.ts.replace("T"," ").replace("Z","") + "</span><span class=\\"log-event\\">" + inc.event + "</span></div>";
+  }).join("");
+}
+
+function updateStatus() {
+  fetch("/status")
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      setAlarmCard("card-errors", "errors-val", data.error_alarm || "?");
+      setAlarmCard("card-heartbeat", "hb-alarm-val", data.heartbeat_alarm || "?");
+      updateGlobalBadge(data.error_alarm, data.heartbeat_alarm);
+      if (data.seconds_since_heartbeat !== null && data.seconds_since_heartbeat !== undefined) {
+        startHbTicker(data.seconds_since_heartbeat);
       }
-    }
+      renderLog(data.incidents);
+      document.getElementById("footer-ts").textContent = "Last updated: " + new Date().toLocaleTimeString() + " · auto-refreshes every 30s";
+    })
+    .catch(function(e){ console.error("status fetch failed", e); });
+}
 
-    // increment ticker every second between polls
-    setInterval(() => {
-      if (heartbeatAge !== null) { heartbeatAge += 1; renderHeartbeat(); }
-    }, 1000);
+function feedback(id, text) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.add("show");
+  setTimeout(function(){ el.classList.remove("show"); }, 2500);
+}
 
-    document.getElementById('btn-error').addEventListener('click', () => {
-      document.getElementById('fb-error').textContent = 'triggering…';
-      fetch('/simulate-failure?mode=error')
-        .then(r => r.json())
-        .then(() => { document.getElementById('fb-error').textContent = 'triggered — watch alarm card'; })
-        .catch(() => { document.getElementById('fb-error').textContent = 'error'; });
-    });
+function triggerError() {
+  fetch("/simulate-failure?mode=error")
+    .then(function(){ feedback("fb-error", "triggered — watch alarm"); })
+    .catch(function(){ feedback("fb-error", "sent"); });
+}
 
-    document.getElementById('btn-crash').addEventListener('click', () => {
-      document.getElementById('fb-crash').textContent = 'triggering…';
-      fetch('/simulate-failure?mode=crash')
-        .then(() => { document.getElementById('fb-crash').textContent = 'crash triggered'; })
-        .catch(() => {
-          // connection dropped = crash happened
-          document.getElementById('fb-crash').textContent =
-            'crash triggered — container restarting, dashboard reconnects automatically';
-        });
-    });
+function triggerCrash() {
+  fetch("/simulate-failure?mode=crash")
+    .then(function(){ feedback("fb-crash", "crash triggered"); })
+    .catch(function(){ feedback("fb-crash", "crash triggered — container restarting"); });
+}
 
-    updateStatus();
-    setInterval(updateStatus, 30000);
-  </script>
+updateStatus();
+setInterval(updateStatus, 30000);
+</script>
 </body>
-</html>"""
+</html>'''
 
 
 @app.get("/dashboard")
