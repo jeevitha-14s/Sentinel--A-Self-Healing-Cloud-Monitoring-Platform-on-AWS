@@ -70,6 +70,30 @@ resource "aws_iam_role_policy" "ecr_pull" {
   })
 }
 
+resource "aws_iam_role_policy" "awslogs" {
+  name = "awslogs"
+  role = aws_iam_role.sentinel_ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+        ]
+        Resource = aws_cloudwatch_log_group.sentinel.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "logs:PutLogEvents"
+        Resource = "${aws_cloudwatch_log_group.sentinel.arn}:log-stream:*"
+      },
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "sentinel_ec2" {
   name = "sentinel-ec2"
   role = aws_iam_role.sentinel_ec2.name
