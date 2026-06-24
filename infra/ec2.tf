@@ -94,6 +94,24 @@ resource "aws_iam_role_policy" "awslogs" {
   })
 }
 
+resource "aws_iam_role_policy" "heartbeat_metric" {
+  name = "heartbeat-metric"
+  role = aws_iam_role.sentinel_ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "HeartbeatMetric"
+      Effect   = "Allow"
+      Action   = "cloudwatch:PutMetricData"
+      Resource = "*"
+      Condition = {
+        StringEquals = { "cloudwatch:namespace" = "Sentinel" }
+      }
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "sentinel_ec2" {
   name = "sentinel-ec2"
   role = aws_iam_role.sentinel_ec2.name
