@@ -37,7 +37,7 @@ jobs:
               \"docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}\",
               \"docker stop sentinel-app || true\",
               \"docker rm   sentinel-app || true\",
-              \"docker run -d --name sentinel-app --restart unless-stopped -p 8000:8000 --log-driver awslogs --log-opt awslogs-region=${{ secrets.AWS_REGION }} --log-opt awslogs-group=/sentinel/app --log-opt awslogs-create-group=false ${{ secrets.ECR_REPO }}:${{ github.sha }}\"
+              \"docker run -d --name sentinel-app --restart unless-stopped -p 8000:8000 ${{ secrets.ECR_REPO }}:${{ github.sha }}\"
             ]" \
             --query Command.CommandId \
             --output text)
