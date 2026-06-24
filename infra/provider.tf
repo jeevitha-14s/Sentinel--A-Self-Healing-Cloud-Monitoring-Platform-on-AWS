@@ -14,6 +14,12 @@ variable "aws_region" {
   default = "ap-south-1"
 }
 
+variable "incidents_topic_arn" {
+  type        = string
+  description = "ARN of the sentinel-incidents SNS topic (Feature 7). Leave empty until that topic exists."
+  default     = ""
+}
+
 provider "aws" {
   region = var.aws_region
 }
