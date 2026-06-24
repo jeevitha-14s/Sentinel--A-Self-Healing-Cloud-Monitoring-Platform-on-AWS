@@ -41,3 +41,32 @@ do not appear in CloudTrail. They are still required for `send-command` to work:
 **Feature 8 note:** The hand-written least-privilege policy must include all of the
 above. The management-plane actions can be scoped to `*` (no resource-level support);
 the ssmmessages/ec2messages actions also have no resource-level scoping available.
+
+---
+
+## Feature 4: Infrastructure lessons learned
+
+### AL2023 AMI does not pre-install amazon-ssm-agent
+`ami-0f2f85bcae7ec46bd` (ap-south-1, AL2023) does not include the SSM agent.
+`systemctl enable --now amazon-ssm-agent` fails with "Unit file does not exist."
+**Fix:** `dnf install -y amazon-ssm-agent` in user data before enabling the service.
+Instance never appears in Fleet Manager without this.
+
+### Default root volume on this AMI is 2 GB — too small for Docker
+The AMI snapshot default is 2 GB. `docker pull` fills the disk during the first
+image download (~130 MB compressed expands to ~400 MB on disk; two pulls exceeded 2 GB).
+**Fix:** Always declare `root_block_device { volume_size = 20 }` in `aws_instance`.
+If you forget, resize live with `growpart /dev/xvda 1 && xfs_growfs /` via SSM —
+no instance replacement required for EBS volume expansion.
+
+### awslogs log driver does NOT fail silently when the log group is missing
+The spec assumed `--log-driver awslogs` with `awslogs-create-group=false` would
+start the container and silently drop logs if `/sentinel/app` didn't exist.
+**Actual behaviour:** the driver calls `logs:CreateLogStream` synchronously during
+container startup. If the call fails (missing log group → ResourceNotFoundException,
+or missing IAM → AccessDeniedException), Docker aborts the container before it starts.
+**Fix for Feature 4:** use `--log-driver json-file` (default) until Feature 5 creates
+the log group and adds the IAM permissions.
+**Fix for Feature 5:** create `/sentinel/app` log group in Terraform, add
+`logs:CreateLogStream` and `logs:PutLogEvents` to the instance role scoped to that
+log group ARN, then switch the deploy command back to `--log-driver awslogs`.
