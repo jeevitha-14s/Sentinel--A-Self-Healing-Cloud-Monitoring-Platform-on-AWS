@@ -49,6 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .stat{background:#1e1e1c;border-radius:10px;padding:1rem}
 .stat-label{font-size:.75rem;color:#a1a1aa;margin-bottom:4px}
 .stat-val{font-size:1.4rem;font-weight:600;color:#fafaf9}
+.stat-sub{font-size:.65rem;color:#52525b;margin-top:3px}
 
 /* Section label */
 .sec-label{font-size:.72rem;font-weight:500;color:#a1a1aa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
@@ -139,9 +140,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   </div>
 
   <div class="stat-grid">
-    <div class="stat"><div class="stat-label">Error rate</div><div class="stat-val" id="stat-errors">0</div></div>
+    <div class="stat"><div class="stat-label">Error rate</div><div class="stat-val" id="stat-errors">0</div><div class="stat-sub">since last reset</div></div>
     <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div></div>
-    <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div></div>
+    <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div><div class="stat-sub">since last reset</div></div>
     <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div></div>
   </div>
 
@@ -208,12 +209,13 @@ var errHistory = [];
 var wasConnected = true;
 
 var PIPELINE_ACTIVE = {
-  idle:   [],
-  error:  ["pn-flask","pn-cw"],
-  alarm:  ["pn-flask","pn-cw","pn-alarm"],
-  lambda: ["pn-flask","pn-cw","pn-alarm","pn-lambda"],
-  ssm:    ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm"],
-  alert:  ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"]
+  idle:       [],
+  flask_only: ["pn-flask"],
+  error:      ["pn-flask","pn-cw"],
+  alarm:      ["pn-flask","pn-cw","pn-alarm"],
+  lambda:     ["pn-flask","pn-cw","pn-alarm","pn-lambda"],
+  ssm:        ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm"],
+  alert:      ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"]
 };
 var ALL_NODES  = ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"];
 var ALL_ARROWS = ["pa-0","pa-1","pa-2","pa-3","pa-4"];
@@ -333,8 +335,12 @@ function renderLog(incidents) {
 
 /* Apply full API response to DOM */
 function applyData(d) {
-  setBadge(d.error_alarm, d.heartbeat_alarm, d.pipeline_stage, false);
-  setPipeline(d.pipeline_stage || "idle");
+  var stage = d.pipeline_stage || "idle";
+  if (stage === "error") {
+    stage = (d.error_alarm === "ALARM") ? "alarm" : "flask_only";
+  }
+  setBadge(d.error_alarm, d.heartbeat_alarm, stage, false);
+  setPipeline(stage);
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
