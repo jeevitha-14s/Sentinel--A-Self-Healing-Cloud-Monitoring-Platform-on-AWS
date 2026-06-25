@@ -238,14 +238,15 @@ function scheduleAnimation(steps) {
       b.className = "badge " + step.cls;
       b.textContent = step.text;
       if (step.done) {
-        animating = false;
         // Sync server pipeline_stage to "idle" so next poll doesn't revert the diagram
         fetch("/api/simulate", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({mode: "pipeline_reset"})
         }).catch(function() {});
-        setTimeout(poll, 2000); // hold "Auto-healed ✓" badge for 2s before polling
+        // Keep animating=true for 2s so regular polls don't override "Auto-healed ✓",
+        // then release and immediately poll to settle to real state
+        setTimeout(function() { animating = false; poll(); }, 2000);
       }
     }, step.at));
   });
