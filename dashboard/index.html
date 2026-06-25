@@ -237,7 +237,16 @@ function scheduleAnimation(steps) {
       var b = document.getElementById("global-badge");
       b.className = "badge " + step.cls;
       b.textContent = step.text;
-      if (step.done) { animating = false; poll(); }
+      if (step.done) {
+        animating = false;
+        // Sync server pipeline_stage to "idle" so next poll doesn't revert the diagram
+        fetch("/api/simulate", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({mode: "pipeline_reset"})
+        }).catch(function() {});
+        setTimeout(poll, 2000); // hold "Auto-healed ✓" badge for 2s before polling
+      }
     }, step.at));
   });
 }
@@ -267,10 +276,12 @@ function setAlarmCard(cardId, valId, state) {
 }
 
 /* Global badge */
-function setBadge(errAlarm, hbAlarm, lost) {
+function setBadge(errAlarm, hbAlarm, pipelineStage, lost) {
   var b = document.getElementById("global-badge");
   if (lost) {
     b.className = "badge badge-grey"; b.textContent = "Connection lost";
+  } else if (pipelineStage === "alert") {
+    b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
   } else if (errAlarm === "ALARM" || hbAlarm === "ALARM") {
     b.className = "badge badge-alarm"; b.textContent = "Incident in progress";
   } else {
@@ -366,7 +377,7 @@ function renderLog(incidents) {
 /* Apply full API response to DOM */
 function applyData(d) {
   if (!animating) {
-    setBadge(d.error_alarm, d.heartbeat_alarm, false);
+    setBadge(d.error_alarm, d.heartbeat_alarm, d.pipeline_stage, false);
     setPipeline(d.pipeline_stage || "idle");
   }
 
@@ -420,7 +431,7 @@ function poll() {
     })
     .catch(function() {
       wasConnected = false;
-      setBadge(null, null, true);
+      setBadge(null, null, null, true);
       document.getElementById("foot-text").textContent = "Reconnecting…";
     });
 }
@@ -479,13 +490,10 @@ function simulate(mode) {
       if (!r.ok) return;
       feedback("fb-escalate");
       cancelAnimation();
-      animating = true;
       setPipeline("alert");
       var b = document.getElementById("global-badge");
       b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
-      setTimeout(poll, 400); // refresh incident log + counter immediately
-      // hold for 30s then release to polls
-      animTimers.push(setTimeout(function() { animating = false; }, 30000));
+      setTimeout(poll, 400); // update incident log + counter; badge stays via setBadge(pipeline_stage="alert")
     }).catch(function() {});
     return;
   }

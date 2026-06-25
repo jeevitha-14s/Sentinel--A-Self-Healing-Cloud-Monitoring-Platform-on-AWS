@@ -248,6 +248,12 @@ def api_simulate() -> ResponseReturnValue:
         logging.error("escalation: auto-heal failed, human needed")
         return jsonify({"triggered": "human_needed"})
 
+    if mode == "pipeline_reset":
+        _sim_state["pipeline_stage"] = "idle"
+        _sim_state["pipeline_expires_at"] = 0.0
+        _api_cache.clear()
+        return jsonify({"ok": True})
+
     if mode == "heal_reset":
         _sim_state["error_rate"] = 0
         _sim_state["pipeline_stage"] = "idle"
