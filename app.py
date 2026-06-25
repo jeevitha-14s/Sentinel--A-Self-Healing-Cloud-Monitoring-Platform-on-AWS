@@ -240,6 +240,14 @@ def api_simulate() -> ResponseReturnValue:
         logging.error("api simulate: silent crash triggered")
         os._exit(1)
 
+    if mode == "human_needed":
+        _sim_state["pipeline_stage"] = "alert"
+        _sim_state["pipeline_expires_at"] = time.time() + 90
+        _incident_log.appendleft({"ts": _utcnow(), "event": "auto-heal failed — human needed"})
+        _api_cache.clear()
+        logging.error("escalation: auto-heal failed, human needed")
+        return jsonify({"triggered": "human_needed"})
+
     if mode == "heal_reset":
         _sim_state["error_rate"] = 0
         _sim_state["pipeline_stage"] = "idle"

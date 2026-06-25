@@ -72,7 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .spark-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height .3s,background .3s}
 
 /* Demo buttons */
-.btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem}
 .btn{padding:10px 16px;font-size:.82rem;font-weight:500;border-radius:8px;border:0.5px solid #44443e;background:#222220;color:#e8e8e6;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s,transform .1s;width:100%}
 .btn:hover{background:#2a2a27}
 .btn:active{transform:scale(.98)}
@@ -181,6 +181,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <button class="btn danger" onclick="simulate('silent_crash')">
       &#9632; Silent Crash<span class="btn-fb" id="fb-crash">crash triggered</span>
     </button>
+    <button class="btn danger" onclick="simulate('human_needed')" style="border-color:#7a4a0a;color:#fb923c">
+      &#9650; Escalate<span class="btn-fb" id="fb-escalate" style="color:#fb923c">human needed</span>
+    </button>
     <button class="btn success" onclick="simulate('heal_reset')">
       &#10003; Heal &amp; Reset<span class="btn-fb" id="fb-heal">reset</span>
     </button>
@@ -202,6 +205,9 @@ var hbSeconds = null;
 var hbTicker = null;
 var hbHistory = [];
 var errHistory = [];
+var animating = false;
+var animTimers = [];
+var wasConnected = true;
 
 var PIPELINE_ACTIVE = {
   idle:   [],
@@ -213,6 +219,38 @@ var PIPELINE_ACTIVE = {
 };
 var ALL_NODES  = ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"];
 var ALL_ARROWS = ["pa-0","pa-1","pa-2","pa-3","pa-4"];
+
+/* Pipeline animation — walks through stages with setTimeout.
+   While animating, applyData() skips pipeline/badge so polls don't interrupt. */
+function cancelAnimation() {
+  animTimers.forEach(function(t) { clearTimeout(t); });
+  animTimers = [];
+  animating = false;
+}
+
+function scheduleAnimation(steps) {
+  cancelAnimation();
+  animating = true;
+  steps.forEach(function(step) {
+    animTimers.push(setTimeout(function() {
+      setPipeline(step.stage);
+      var b = document.getElementById("global-badge");
+      b.className = "badge " + step.cls;
+      b.textContent = step.text;
+      if (step.done) { animating = false; poll(); }
+    }, step.at));
+  });
+}
+
+var ANIM_ERROR_BURST = [
+  {at:     0, stage: "error",  cls: "badge-alarm", text: "Errors detected"},
+  {at:  3000, stage: "alarm",  cls: "badge-alarm", text: "Alarm triggered"},
+  {at:  7000, stage: "lambda", cls: "badge-alarm", text: "Lambda invoked"},
+  {at: 11000, stage: "ssm",    cls: "badge-alarm", text: "SSM restarting container"},
+  {at: 15000, stage: "alert",  cls: "badge-alarm", text: "Alert sent"},
+  {at: 20000, stage: "idle",   cls: "badge-ok",    text: "Auto-healed ✓", done: true}
+];
+
 
 /* Alarm cards (original left-border style) */
 function setAlarmCard(cardId, valId, state) {
@@ -327,7 +365,10 @@ function renderLog(incidents) {
 
 /* Apply full API response to DOM */
 function applyData(d) {
-  setBadge(d.error_alarm, d.heartbeat_alarm, false);
+  if (!animating) {
+    setBadge(d.error_alarm, d.heartbeat_alarm, false);
+    setPipeline(d.pipeline_stage || "idle");
+  }
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
@@ -345,8 +386,6 @@ function applyData(d) {
   }).length;
   document.getElementById("stat-total").textContent = incidents.length;
   document.getElementById("stat-human").textContent = humanCount;
-
-  setPipeline(d.pipeline_stage || "idle");
 
   var hbAge = d.seconds_since_heartbeat;
   if (hbAge !== null && hbAge !== undefined) {
@@ -366,8 +405,21 @@ function applyData(d) {
 function poll() {
   fetch("/api/status")
     .then(function(r) { return r.json(); })
-    .then(function(d) { applyData(d); })
+    .then(function(d) {
+      var recovered = !wasConnected;
+      wasConnected = true;
+      if (recovered) {
+        // Container came back — flash "Auto-healed ✓" for 1.5s then apply full data
+        var b = document.getElementById("global-badge");
+        b.className = "badge badge-ok";
+        b.textContent = "Auto-healed ✓";
+        setTimeout(function() { try { applyData(d); } catch(e) { console.error(e); } }, 1500);
+      } else {
+        try { applyData(d); } catch(e) { console.error(e); }
+      }
+    })
     .catch(function() {
+      wasConnected = false;
       setBadge(null, null, true);
       document.getElementById("foot-text").textContent = "Reconnecting…";
     });
@@ -382,8 +434,34 @@ function feedback(id, duration) {
 }
 
 function simulate(mode) {
+  if (mode === "error_burst") {
+    fetch("/api/simulate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({mode: "error_burst"})
+    }).then(function(r) {
+      if (!r.ok) return;
+      feedback("fb-burst");
+      setTimeout(poll, 400); // refresh stats/log immediately
+      scheduleAnimation(ANIM_ERROR_BURST);
+    }).catch(function() {});
+    return;
+  }
+
   if (mode === "silent_crash") {
-    feedback("fb-crash", 6000);
+    feedback("fb-crash", 18000);
+    cancelAnimation(); // clear any running error_burst animation
+    // Animate pipeline only — badge is handled by poll failures showing "Connection lost"
+    var crashSteps = [
+      [0,     "alarm"],
+      [4000,  "lambda"],
+      [8000,  "ssm"],
+      [12000, "alert"],
+      [16000, "idle"]
+    ];
+    crashSteps.forEach(function(step) {
+      animTimers.push(setTimeout(function() { setPipeline(step[1]); }, step[0]));
+    });
     fetch("/api/simulate", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -391,15 +469,42 @@ function simulate(mode) {
     }).catch(function() {});
     return;
   }
-  var fbId = mode === "error_burst" ? "fb-burst" : "fb-heal";
-  fetch("/api/simulate", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({mode: mode})
-  })
-    .then(function(r) { if (r.ok) feedback(fbId); })
-    .then(function() { setTimeout(poll, 400); })
-    .catch(function() {});
+
+  if (mode === "human_needed") {
+    fetch("/api/simulate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({mode: "human_needed"})
+    }).then(function(r) {
+      if (!r.ok) return;
+      feedback("fb-escalate");
+      cancelAnimation();
+      animating = true;
+      setPipeline("alert");
+      var b = document.getElementById("global-badge");
+      b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
+      setTimeout(poll, 400); // refresh incident log + counter immediately
+      // hold for 30s then release to polls
+      animTimers.push(setTimeout(function() { animating = false; }, 30000));
+    }).catch(function() {});
+    return;
+  }
+
+  if (mode === "heal_reset") {
+    cancelAnimation();
+    fetch("/api/simulate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({mode: "heal_reset"})
+    }).then(function(r) {
+      if (!r.ok) return;
+      feedback("fb-heal");
+      setPipeline("idle");
+      var b = document.getElementById("global-badge");
+      b.className = "badge badge-ok"; b.textContent = "All systems healthy";
+      setTimeout(poll, 400);
+    }).catch(function() {});
+  }
 }
 
 poll();
