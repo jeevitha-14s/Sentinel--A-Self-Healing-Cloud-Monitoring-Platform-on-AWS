@@ -205,8 +205,6 @@ var hbSeconds = null;
 var hbTicker = null;
 var hbHistory = [];
 var errHistory = [];
-var animating = false;
-var animTimers = [];
 var wasConnected = true;
 
 var PIPELINE_ACTIVE = {
@@ -219,48 +217,6 @@ var PIPELINE_ACTIVE = {
 };
 var ALL_NODES  = ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"];
 var ALL_ARROWS = ["pa-0","pa-1","pa-2","pa-3","pa-4"];
-
-/* Pipeline animation — walks through stages with setTimeout.
-   While animating, applyData() skips pipeline/badge so polls don't interrupt. */
-function cancelAnimation() {
-  animTimers.forEach(function(t) { clearTimeout(t); });
-  animTimers = [];
-  animating = false;
-}
-
-function scheduleAnimation(steps) {
-  cancelAnimation();
-  animating = true;
-  steps.forEach(function(step) {
-    animTimers.push(setTimeout(function() {
-      setPipeline(step.stage);
-      var b = document.getElementById("global-badge");
-      b.className = "badge " + step.cls;
-      b.textContent = step.text;
-      if (step.done) {
-        // Sync server pipeline_stage to "idle" so next poll doesn't revert the diagram
-        fetch("/api/simulate", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({mode: "pipeline_reset"})
-        }).catch(function() {});
-        // Keep animating=true for 2s so regular polls don't override "Auto-healed ✓",
-        // then release and immediately poll to settle to real state
-        setTimeout(function() { animating = false; poll(); }, 2000);
-      }
-    }, step.at));
-  });
-}
-
-var ANIM_ERROR_BURST = [
-  {at:     0, stage: "error",  cls: "badge-alarm", text: "Errors detected"},
-  {at:  3000, stage: "alarm",  cls: "badge-alarm", text: "Alarm triggered"},
-  {at:  7000, stage: "lambda", cls: "badge-alarm", text: "Lambda invoked"},
-  {at: 11000, stage: "ssm",    cls: "badge-alarm", text: "SSM restarting container"},
-  {at: 15000, stage: "alert",  cls: "badge-alarm", text: "Alert sent"},
-  {at: 20000, stage: "idle",   cls: "badge-ok",    text: "Auto-healed ✓", done: true}
-];
-
 
 /* Alarm cards (original left-border style) */
 function setAlarmCard(cardId, valId, state) {
@@ -377,10 +333,8 @@ function renderLog(incidents) {
 
 /* Apply full API response to DOM */
 function applyData(d) {
-  if (!animating) {
-    setBadge(d.error_alarm, d.heartbeat_alarm, d.pipeline_stage, false);
-    setPipeline(d.pipeline_stage || "idle");
-  }
+  setBadge(d.error_alarm, d.heartbeat_alarm, d.pipeline_stage, false);
+  setPipeline(d.pipeline_stage || "idle");
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
@@ -454,26 +408,13 @@ function simulate(mode) {
     }).then(function(r) {
       if (!r.ok) return;
       feedback("fb-burst");
-      setTimeout(poll, 400); // refresh stats/log immediately
-      scheduleAnimation(ANIM_ERROR_BURST);
+      setTimeout(poll, 400);
     }).catch(function() {});
     return;
   }
 
   if (mode === "silent_crash") {
-    feedback("fb-crash", 18000);
-    cancelAnimation(); // clear any running error_burst animation
-    // Animate pipeline only — badge is handled by poll failures showing "Connection lost"
-    var crashSteps = [
-      [0,     "alarm"],
-      [4000,  "lambda"],
-      [8000,  "ssm"],
-      [12000, "alert"],
-      [16000, "idle"]
-    ];
-    crashSteps.forEach(function(step) {
-      animTimers.push(setTimeout(function() { setPipeline(step[1]); }, step[0]));
-    });
+    feedback("fb-crash", 4000);
     fetch("/api/simulate", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -490,17 +431,12 @@ function simulate(mode) {
     }).then(function(r) {
       if (!r.ok) return;
       feedback("fb-escalate");
-      cancelAnimation();
-      setPipeline("alert");
-      var b = document.getElementById("global-badge");
-      b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
-      setTimeout(poll, 400); // update incident log + counter; badge stays via setBadge(pipeline_stage="alert")
+      setTimeout(poll, 400);
     }).catch(function() {});
     return;
   }
 
   if (mode === "heal_reset") {
-    cancelAnimation();
     fetch("/api/simulate", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -508,9 +444,6 @@ function simulate(mode) {
     }).then(function(r) {
       if (!r.ok) return;
       feedback("fb-heal");
-      setPipeline("idle");
-      var b = document.getElementById("global-badge");
-      b.className = "badge badge-ok"; b.textContent = "All systems healthy";
       setTimeout(poll, 400);
     }).catch(function() {});
   }
