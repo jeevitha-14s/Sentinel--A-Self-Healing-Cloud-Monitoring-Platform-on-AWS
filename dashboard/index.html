@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sentinel Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#111110;color:#e8e8e6;min-height:100vh;padding:1.5rem}
+.wrap{max-width:860px;margin:0 auto}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding-bottom:1.5rem;border-bottom:0.5px solid #2a2a27;margin-bottom:1.5rem}
+.h-title{font-size:1.2rem;font-weight:600;color:#fafaf9;letter-spacing:-.01em}
+.h-sub{font-size:.78rem;color:#71717a;margin-top:3px}
+.pill{font-size:.75rem;padding:5px 14px;border-radius:20px;font-weight:500;transition:all .4s}
+.pill-ok{background:#0d2b1a;color:#4ade80;border:0.5px solid #1a5232}
+.pill-alarm{background:#3a1212;color:#f87171;border:0.5px solid #7a2020}
+.pill-grey{background:#252523;color:#a1a1aa;border:0.5px solid #3a3a37}
+
+/* Metric cards */
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem}
+.card{background:#1a1a18;border:0.5px solid #2e2e2b;border-radius:10px;padding:.9rem 1rem}
+.card-label{font-size:.7rem;color:#71717a;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-val{font-size:1.2rem;font-weight:600;transition:color .4s;white-space:nowrap}
+.card-meta{font-size:.68rem;color:#52525b;margin-top:4px}
+.c-ok{color:#4ade80}
+.c-alarm{color:#f87171}
+.c-amber{color:#fbbf24}
+.c-grey{color:#71717a}
+
+/* Pipeline */
+.section-label{font-size:.7rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
+.pipeline-wrap{background:#1a1a18;border:0.5px solid #2e2e2b;border-radius:10px;padding:1.25rem 1rem;margin-bottom:1.25rem;overflow-x:auto}
+.pipeline{display:flex;align-items:center;gap:0;min-width:520px}
+.pnode{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.pnode-box{font-size:.7rem;font-weight:500;padding:7px 10px;border-radius:7px;border:0.5px solid #3a3a37;background:#222220;color:#71717a;text-align:center;transition:all .4s;width:100%;max-width:90px}
+.pnode-box.active{border-color:#4ade80;color:#4ade80;background:#0d2b1a}
+.pnode-box.pulse{border-color:#4ade80;color:#4ade80;background:#0d2b1a;animation:nodepulse 1.2s ease-in-out infinite}
+@keyframes nodepulse{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.4)}50%{box-shadow:0 0 0 6px rgba(74,222,128,0)}}
+.parrow{font-size:.9rem;color:#3a3a37;padding:0 3px;flex-shrink:0;transition:color .4s}
+.parrow.active{color:#4ade80}
+
+/* Sparklines */
+.sparks-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem}
+.spark-card{background:#1a1a18;border:0.5px solid #2e2e2b;border-radius:10px;padding:.9rem 1rem}
+.spark-label{font-size:.7rem;color:#71717a;margin-bottom:.6rem}
+.spark-bars{display:flex;align-items:flex-end;gap:3px;height:36px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;transition:height .3s,background .3s;min-height:2px}
+
+/* Demo buttons */
+.btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+.btn{padding:10px 14px;font-size:.8rem;font-weight:500;border-radius:8px;border:0.5px solid #3a3a37;background:#1a1a18;color:#e8e8e6;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:6px;transition:background .15s,transform .1s;width:100%;text-align:left}
+.btn:hover{background:#222220}
+.btn:active{transform:scale(.98)}
+.btn.danger{border-color:#5c2020;color:#f87171}
+.btn.danger:hover{background:#2a1414}
+.btn.success{border-color:#1a5232;color:#4ade80}
+.btn.success:hover{background:#0d2b1a}
+.btn-fb{font-size:.68rem;opacity:0;transition:opacity .3s;white-space:nowrap}
+.btn-fb.show{opacity:1}
+
+/* Incident log */
+.log-list{display:flex;flex-direction:column;gap:6px;margin-bottom:1.5rem}
+.log-empty{font-size:.8rem;color:#52525b;padding:8px 0}
+.log-row{background:#1a1a18;border:0.5px solid #2e2e2b;border-radius:7px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.log-event{font-size:.78rem;font-weight:500;color:#e8e8e6}
+.log-time{font-size:.68rem;color:#52525b;margin-top:2px;font-variant-numeric:tabular-nums}
+.log-tag{font-size:.68rem;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.tag-ok{background:#0d2b1a;color:#4ade80}
+.tag-warn{background:#2b1f0d;color:#fbbf24}
+
+/* Footer */
+.footer{display:flex;align-items:center;justify-content:space-between;padding-top:1rem;border-top:0.5px solid #2a2a27}
+.foot-text{font-size:.7rem;color:#52525b}
+.foot-badge{font-size:.7rem;padding:3px 10px;border-radius:20px;background:#1a1a18;color:#71717a;border:0.5px solid #2e2e2b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div>
+      <div class="h-title">Sentinel</div>
+      <div class="h-sub">Self-healing platform &bull; ap-south-1</div>
+    </div>
+    <span class="pill pill-ok" id="status-pill">All systems healthy</span>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">App Status</div>
+      <div class="card-val c-ok" id="card-app-status">Healthy</div>
+      <div class="card-meta" id="card-app-meta">process alive</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Heartbeat Alarm</div>
+      <div class="card-val c-grey" id="card-hb-alarm">—</div>
+      <div class="card-meta">missing &times;2 &rarr; Lambda</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Error Rate</div>
+      <div class="card-val c-ok" id="card-error-rate">0</div>
+      <div class="card-meta">since last reset</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Auto-Heals</div>
+      <div class="card-val c-ok" id="card-auto-heals">0</div>
+      <div class="card-meta">lifetime restarts</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Last Heartbeat</div>
+      <div class="card-val c-grey" id="card-hb-age">—</div>
+      <div class="card-meta" id="card-hb-meta">60s interval</div>
+    </div>
+  </div>
+
+  <div class="section-label">Self-heal pipeline</div>
+  <div class="pipeline-wrap">
+    <div class="pipeline">
+      <div class="pnode">
+        <div class="pnode-box" id="pn-flask">Flask App</div>
+      </div>
+      <span class="parrow" id="pa-0">&rsaquo;</span>
+      <div class="pnode">
+        <div class="pnode-box" id="pn-cw">CloudWatch</div>
+      </div>
+      <span class="parrow" id="pa-1">&rsaquo;</span>
+      <div class="pnode">
+        <div class="pnode-box" id="pn-alarm">Alarm</div>
+      </div>
+      <span class="parrow" id="pa-2">&rsaquo;</span>
+      <div class="pnode">
+        <div class="pnode-box" id="pn-lambda">Lambda</div>
+      </div>
+      <span class="parrow" id="pa-3">&rsaquo;</span>
+      <div class="pnode">
+        <div class="pnode-box" id="pn-ssm">SSM</div>
+      </div>
+      <span class="parrow" id="pa-4">&rsaquo;</span>
+      <div class="pnode">
+        <div class="pnode-box" id="pn-alert">Alert</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sparks-row">
+    <div class="spark-card">
+      <div class="spark-label">Heartbeat age (last 10 polls, seconds)</div>
+      <div class="spark-bars" id="spark-hb"></div>
+    </div>
+    <div class="spark-card">
+      <div class="spark-label">Error rate (last 10 polls)</div>
+      <div class="spark-bars" id="spark-err"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Demo controls</div>
+  <div class="btn-grid">
+    <button class="btn danger" id="btn-burst" onclick="simulate('error_burst')">
+      <span>&#9888; Error Burst</span>
+      <span class="btn-fb" id="fb-burst">triggered</span>
+    </button>
+    <button class="btn danger" id="btn-crash" onclick="simulate('silent_crash')">
+      <span>&#9632; Silent Crash</span>
+      <span class="btn-fb" id="fb-crash">container restarting&hellip;</span>
+    </button>
+    <button class="btn success" id="btn-heal" onclick="simulate('heal_reset')">
+      <span>&#10003; Heal &amp; Reset</span>
+      <span class="btn-fb" id="fb-heal">reset</span>
+    </button>
+  </div>
+
+  <div class="section-label">Incident log</div>
+  <div class="log-list" id="log-list">
+    <div class="log-empty">No incidents yet &mdash; trigger one above</div>
+  </div>
+
+  <div class="footer">
+    <span class="foot-text" id="foot-text">polling every 5s</span>
+    <span class="foot-badge">sentinel-app</span>
+  </div>
+
+</div>
+<script>
+var hbHistory = [];
+var errHistory = [];
+
+var PIPELINE_NODES = {
+  idle:   [],
+  error:  ["pn-flask","pn-cw"],
+  alarm:  ["pn-flask","pn-cw","pn-alarm"],
+  lambda: ["pn-flask","pn-cw","pn-alarm","pn-lambda"],
+  ssm:    ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm"],
+  alert:  ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"]
+};
+var ALL_NODES = ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"];
+var ALL_ARROWS = ["pa-0","pa-1","pa-2","pa-3","pa-4"];
+
+function setPipeline(stage) {
+  var active = PIPELINE_NODES[stage] || [];
+  ALL_NODES.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isLast = active.length > 0 && active[active.length - 1] === id;
+    el.className = "pnode-box" + (isLast ? " pulse" : (active.indexOf(id) !== -1 ? " active" : ""));
+  });
+  ALL_ARROWS.forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.className = "parrow" + (i < active.length - 1 ? " active" : "");
+  });
+}
+
+function setCard(id, text, cls) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = "card-val " + (cls || "c-grey");
+}
+
+function alarmClass(state) {
+  if (state === "OK") return "c-ok";
+  if (state === "ALARM") return "c-alarm";
+  return "c-grey";
+}
+
+function hbAgeClass(s) {
+  if (s === null || s === undefined) return "c-grey";
+  if (s < 70) return "c-ok";
+  if (s < 120) return "c-amber";
+  return "c-alarm";
+}
+
+function hbAgeText(s) {
+  if (s === null || s === undefined) return "—";
+  return s + "s ago";
+}
+
+function renderSparkline(containerId, history, maxVal, colorFn) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (history.length === 0) { el.innerHTML = ""; return; }
+  var max = maxVal || Math.max.apply(null, history) || 1;
+  el.innerHTML = history.map(function(v) {
+    var pct = Math.max(4, Math.round((v / max) * 100));
+    return "<div class=\"spark-bar\" style=\"height:" + pct + "%;background:" + colorFn(v) + "\"></div>";
+  }).join("");
+}
+
+function hbColor(v) {
+  if (v < 70) return "#22c55e";
+  if (v < 120) return "#f59e0b";
+  return "#ef4444";
+}
+
+function errColor(v) {
+  if (v === 0) return "#22c55e";
+  if (v < 10) return "#f59e0b";
+  return "#ef4444";
+}
+
+function renderLog(incidents) {
+  var el = document.getElementById("log-list");
+  if (!el) return;
+  if (!incidents || incidents.length === 0) {
+    el.innerHTML = "<div class=\"log-empty\">No incidents yet &mdash; trigger one above</div>";
+    return;
+  }
+  el.innerHTML = incidents.slice(0, 10).map(function(inc) {
+    var human = inc.event.toLowerCase().indexOf("human") !== -1;
+    var tag = human
+      ? "<span class=\"log-tag tag-warn\">human needed</span>"
+      : "<span class=\"log-tag tag-ok\">logged</span>";
+    var t = inc.ts.replace("T", " ").replace("Z", " UTC");
+    return "<div class=\"log-row\"><div><div class=\"log-event\">" + inc.event +
+           "</div><div class=\"log-time\">" + t + "</div></div>" + tag + "</div>";
+  }).join("");
+}
+
+function applyData(d) {
+  var pill = document.getElementById("status-pill");
+  if (d.system_ok) {
+    pill.className = "pill pill-ok";
+    pill.textContent = "All systems healthy";
+  } else {
+    pill.className = "pill pill-alarm";
+    pill.textContent = "Incident in progress";
+  }
+
+  var appCls = d.app_status === "healthy" ? "c-ok" : (d.app_status === "restarting" ? "c-amber" : "c-alarm");
+  var appText = d.app_status === "healthy" ? "Healthy" : (d.app_status === "restarting" ? "Restarting…" : "Down");
+  setCard("card-app-status", appText, appCls);
+  var appMeta = document.getElementById("card-app-meta");
+  if (appMeta) appMeta.textContent = d.app_status === "healthy" ? "process alive" : "";
+
+  setCard("card-hb-alarm", d.heartbeat_alarm || "—", alarmClass(d.heartbeat_alarm));
+  setCard("card-error-rate", String(d.error_rate || 0), (d.error_rate || 0) > 0 ? "c-alarm" : "c-ok");
+  setCard("card-auto-heals", String(d.auto_heals || 0), "c-ok");
+
+  var hbAge = d.seconds_since_heartbeat;
+  setCard("card-hb-age", hbAgeText(hbAge), hbAgeClass(hbAge));
+  var hbMeta = document.getElementById("card-hb-meta");
+  if (hbMeta) hbMeta.textContent = hbAge !== null && hbAge !== undefined ? "60s interval" : "not yet received";
+
+  setPipeline(d.pipeline_stage || "idle");
+
+  if (hbAge !== null && hbAge !== undefined) {
+    hbHistory.push(hbAge);
+    if (hbHistory.length > 10) hbHistory.shift();
+  }
+  errHistory.push(d.error_rate || 0);
+  if (errHistory.length > 10) errHistory.shift();
+
+  renderSparkline("spark-hb", hbHistory, 180, hbColor);
+  renderSparkline("spark-err", errHistory, null, errColor);
+
+  renderLog(d.incidents);
+
+  var foot = document.getElementById("foot-text");
+  if (foot) foot.textContent = "Last updated: " + new Date().toLocaleTimeString() + " · polling every 5s";
+}
+
+function poll() {
+  fetch("/api/status")
+    .then(function(r) { return r.json(); })
+    .then(function(d) { applyData(d); })
+    .catch(function() {
+      var pill = document.getElementById("status-pill");
+      if (pill) { pill.className = "pill pill-grey"; pill.textContent = "Connection lost"; }
+      var foot = document.getElementById("foot-text");
+      if (foot) foot.textContent = "Reconnecting…";
+    });
+}
+
+function feedback(id, duration) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add("show");
+  setTimeout(function() { el.classList.remove("show"); }, duration || 2500);
+}
+
+function simulate(mode) {
+  if (mode === "silent_crash") {
+    feedback("fb-crash", 6000);
+    fetch("/api/simulate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({mode: "silent_crash"})
+    }).catch(function() {
+      // network error = container died — expected
+    });
+    return;
+  }
+  var fbId = mode === "error_burst" ? "fb-burst" : "fb-heal";
+  fetch("/api/simulate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({mode: mode})
+  })
+    .then(function(r) { return r.ok ? feedback(fbId) : null; })
+    .then(function() { setTimeout(poll, 500); })
+    .catch(function() {});
+}
+
+poll();
+setInterval(poll, 5000);
+</script>
+</body>
+</html>
