@@ -168,9 +168,11 @@ def api_status() -> Response:
     import boto3  # lazy — mirrors _heartbeat_loop pattern
 
     now = time.time()
-    if _sim_state["pipeline_expires_at"] < now:
+    if _sim_state["pipeline_expires_at"] > 0 and _sim_state["pipeline_expires_at"] < now:
         _sim_state["pipeline_stage"] = "idle"
         _sim_state["app_status"] = "healthy"
+        _sim_state["pipeline_expires_at"] = 0.0
+        _api_cache.clear()
 
     if _api_cache.get("expires_at", 0) > now:
         return jsonify(_api_cache["data"])
@@ -227,6 +229,7 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["pipeline_stage"] = "error"
         _sim_state["pipeline_expires_at"] = time.time() + 90
         _incident_log.appendleft({"ts": _utcnow(), "event": "error burst triggered: 5 errors logged"})
+        _api_cache.clear()
         return jsonify({"triggered": "error_burst"})
 
     if mode == "silent_crash":
@@ -243,6 +246,7 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["pipeline_expires_at"] = 0.0
         _sim_state["auto_heals"] += 1
         _incident_log.clear()
+        _api_cache.clear()
         return jsonify({"ok": True})
 
     return jsonify({"error": "unknown mode", "mode": mode}), 400
