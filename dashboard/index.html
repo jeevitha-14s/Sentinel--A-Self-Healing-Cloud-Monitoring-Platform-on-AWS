@@ -15,7 +15,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .h-sub{font-size:.8rem;color:#a1a1aa;margin-top:2px}
 .badge{font-size:.72rem;padding:4px 12px;border-radius:20px;font-weight:500;transition:all .3s}
 .badge-ok{background:#14321f;color:#4ade80}
-.badge-alarm{background:#3a1515;color:#f87171}
+.badge-alarm{background:#3a1515;color:#f87171;animation:badgepulse 1.8s ease-in-out infinite}
+@keyframes badgepulse{0%,100%{opacity:1}50%{opacity:.65}}
 .badge-grey{background:#2a2a27;color:#a1a1aa}
 .badge-warn{background:#3a2e15;color:#fbbf24}
 
@@ -88,6 +89,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 /* Incident log */
 .log-list{display:flex;flex-direction:column;gap:8px}
 .log-empty{font-size:.82rem;color:#71717a;padding:8px 0}
+.log-legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .log-row{background:#222220;border:0.5px solid #34342f;border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;animation:slideIn .3s ease}
 @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .log-event{font-size:.82rem;font-weight:500;color:#fafaf9}
@@ -123,7 +125,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="card ok" id="card-heartbeat">
       <div class="c-name">&#9825; Heartbeat alarm</div>
       <div class="c-val ok" id="hb-alarm-val">OK</div>
-      <div class="c-meta">2 missed beats &rarr; catches silent crashes</div>
+      <div class="c-meta">2 missed beats &rarr; catches silent crashes &bull; simulated in demo</div>
     </div>
   </div>
 
@@ -143,9 +145,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   <div class="stat-grid">
     <div class="stat"><div class="stat-label">Error rate</div><div class="stat-val" id="stat-errors">0</div><div class="stat-sub">since last reset</div></div>
-    <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div><div class="stat-sub">lifetime restarts</div></div>
+    <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div><div class="stat-sub">this session</div></div>
     <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div><div class="stat-sub">since last reset</div></div>
-    <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div></div>
+    <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div><div class="stat-sub">when auto-heal fails</div></div>
   </div>
 
   <div class="sec-label">Self-heal pipeline</div>
@@ -161,7 +163,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <span class="parrow" id="pa-3">&#8594;</span>
       <div class="pnode"><div class="pnode-box" id="pn-ssm">SSM</div></div>
       <span class="parrow" id="pa-4">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-alert">Alert</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-alert" title="Not triggered — container auto-healed before escalation">Alert</div></div>
     </div>
   </div>
 
@@ -176,7 +178,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     </div>
   </div>
 
-  <div class="sec-label">Demo controls</div>
+  <div class="sec-label">Simulation controls</div>
   <div class="btn-grid">
     <button class="btn danger" onclick="simulate('error_burst')">
       &#9888; Error Burst<span class="btn-fb" id="fb-burst">triggered — watch alarm</span>
@@ -185,14 +187,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       &#9632; Silent Crash<span class="btn-fb" id="fb-crash">crash triggered</span>
     </button>
     <button class="btn danger" onclick="simulate('human_needed')" style="border-color:#7a4a0a;color:#fb923c">
-      &#9650; Escalate<span class="btn-fb" id="fb-escalate" style="color:#fb923c">human needed</span>
+      &#9888; Escalate<span class="btn-fb" id="fb-escalate" style="color:#fb923c">human needed</span>
     </button>
     <button class="btn success" onclick="simulate('heal_reset')">
-      &#10003; Heal &amp; Reset<span class="btn-fb" id="fb-heal" style="color:#4ade80">reset</span>
+      &#8635; Heal &amp; Reset<span class="btn-fb" id="fb-heal" style="color:#4ade80">reset</span>
     </button>
   </div>
 
   <div class="sec-label">Incident log</div>
+  <div class="log-legend">
+    <span class="log-tag tag-err">error</span>
+    <span class="log-tag tag-ok">resolved / logged</span>
+    <span class="log-tag tag-warn">human needed / recovering</span>
+  </div>
   <div class="log-list" id="log-list">
     <div class="log-empty">No incidents yet &mdash; trigger one above</div>
   </div>
@@ -265,7 +272,7 @@ function updateHb() {
   }
   c.textContent = hbSeconds === 0 ? "just now" : hbSeconds + "s ago";
   var pct = Math.max(0, Math.round((1 - hbSeconds / 120) * 100));
-  if (hbSeconds < 70) {
+  if (hbSeconds < 61) {
     c.className = "hb-counter ok"; f.style.background = "#22c55e";
     f.style.width = pct + "%";
     s.textContent = "healthy";
@@ -325,9 +332,9 @@ function renderLog(incidents, errorAlarm) {
   if (!el) return;
   if (!incidents || incidents.length === 0) {
     if (errorAlarm === "ALARM") {
-      el.innerHTML = "<div class=\"log-row\"><div><div class=\"log-event\">CloudWatch alarm firing &mdash; log cleared during recovery</div>" +
-                     "<div class=\"log-time\">alarm still resolving</div></div>" +
-                     "<span class=\"log-tag tag-warn\">active</span></div>";
+      el.innerHTML = "<div class=\"log-row\"><div><div class=\"log-event\">Container restarting &mdash; auto-heal in progress</div>" +
+                     "<div class=\"log-time\">alarm still active</div></div>" +
+                     "<span class=\"log-tag tag-warn\">recovering</span></div>";
     } else {
       el.innerHTML = "<div class=\"log-empty\">No incidents yet &mdash; trigger one above</div>";
     }
@@ -336,13 +343,16 @@ function renderLog(incidents, errorAlarm) {
   el.innerHTML = incidents.slice(0, 10).map(function(inc) {
     var ev = inc.event.toLowerCase();
     var human = ev.indexOf("human") !== -1;
-    var isErr = ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1;
+    var isResolved = ev.indexOf("→ ok") !== -1 || ev.indexOf("auto-healed") !== -1;
+    var isErr = !isResolved && (ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1);
     var tag = human
       ? "<span class=\"log-tag tag-warn\">human needed</span>"
-      : isErr
-        ? "<span class=\"log-tag tag-err\">error</span>"
-        : "<span class=\"log-tag tag-ok\">logged</span>";
-    var t = inc.ts.replace("T", " ").replace("Z", "");
+      : isResolved
+        ? "<span class=\"log-tag tag-ok\">resolved</span>"
+        : isErr
+          ? "<span class=\"log-tag tag-err\">error</span>"
+          : "<span class=\"log-tag tag-ok\">logged</span>";
+    var t = inc.ts.replace("T", " ").replace("Z", " UTC");
     return "<div class=\"log-row\"><div><div class=\"log-event\">" + inc.event +
            "</div><div class=\"log-time\">" + t + "</div></div>" + tag + "</div>";
   }).join("");
@@ -378,7 +388,7 @@ function applyData(d) {
   var humanCount = incidents.filter(function(i) {
     return i.event.toLowerCase().indexOf("human") !== -1;
   }).length;
-  document.getElementById("stat-total").textContent = incidents.length;
+  document.getElementById("stat-total").textContent = d.incidents_today !== undefined ? d.incidents_today : incidents.length;
   document.getElementById("stat-human").textContent = humanCount;
 
   var hbAge = d.seconds_since_heartbeat;
@@ -392,7 +402,7 @@ function applyData(d) {
   renderLog(incidents, d.error_alarm);
 
   document.getElementById("foot-text").textContent =
-    "Last updated: " + new Date().toLocaleTimeString() + " · auto-refreshes every 5s";
+    "Last updated: " + new Date().toISOString().slice(11, 19) + " UTC · auto-refreshes every 5s";
 }
 
 /* Poll /api/status every 5s */
@@ -403,6 +413,9 @@ function poll() {
       var recovered = !wasConnected;
       wasConnected = true;
       if (recovered) {
+        // Clear the "restarting…" feedback on the Silent Crash button
+        var fbCrash = document.getElementById("fb-crash");
+        if (fbCrash) { fbCrash.classList.remove("show"); fbCrash.textContent = "crash triggered"; }
         // Container came back — flash "Auto-healed ✓" for 1.5s then apply full data
         var b = document.getElementById("global-badge");
         b.className = "badge badge-ok";
@@ -442,7 +455,14 @@ function simulate(mode) {
   }
 
   if (mode === "silent_crash") {
-    feedback("fb-crash", 4000);
+    var fbCrash = document.getElementById("fb-crash");
+    if (fbCrash) {
+      fbCrash.textContent = "crash triggered";
+      fbCrash.classList.add("show");
+      setTimeout(function() {
+        if (fbCrash.classList.contains("show")) fbCrash.textContent = "restarting…";
+      }, 2000);
+    }
     fetch("/api/simulate", {
       method: "POST",
       headers: {"Content-Type": "application/json"},

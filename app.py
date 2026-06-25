@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import sys
@@ -62,11 +63,53 @@ _incident_log: deque = deque(maxlen=10)
 _sim_state: dict = {
     "error_rate": 0,
     "auto_heals": 0,
+    "incidents_today": 0,
     "pipeline_stage": "idle",
     "app_status": "healthy",
     "pipeline_expires_at": 0.0,
+    "hb_alarm_sim": None,
 }
 _api_cache: dict = {}
+
+_STATE_FILE = "/tmp/sentinel_demo_state.json"
+
+
+def _load_state() -> dict:
+    try:
+        with open(_STATE_FILE) as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except Exception:
+        return {}
+
+
+def _save_state() -> None:
+    try:
+        with open(_STATE_FILE, "w") as f:
+            json.dump(
+                {
+                    "incidents_today": _sim_state.get("incidents_today", 0),
+                    "incident_log": list(_incident_log),
+                    "hb_alarm_sim": _sim_state.get("hb_alarm_sim"),
+                },
+                f,
+            )
+    except Exception:
+        pass
+
+
+# Restore counter and log from previous session (survives os._exit crashes).
+_saved = _load_state()
+if isinstance(_saved.get("incidents_today"), int):
+    _sim_state["incidents_today"] = _saved["incidents_today"]
+if _saved.get("hb_alarm_sim") in ("ALARM", "OK"):
+    _sim_state["hb_alarm_sim"] = _saved["hb_alarm_sim"]
+for _entry in reversed(_saved.get("incident_log") or []):
+    if isinstance(_entry, dict) and "ts" in _entry and "event" in _entry:
+        _incident_log.appendleft(_entry)
+del _saved
 
 
 @app.before_request
@@ -195,16 +238,26 @@ def api_status() -> Response:
     except Exception as exc:
         extra["cw_error"] = str(exc)
 
+    # Apply hb_alarm_sim override so the demo can show HB alarm ALARM during a silent crash.
+    # Cleared by: heal_reset, or error_alarm ALARM→OK (recovery detected in the loop below).
+    if _sim_state["hb_alarm_sim"] is not None:
+        heartbeat_alarm = _sim_state["hb_alarm_sim"]
+
     new_states = {"error_alarm": error_alarm, "heartbeat_alarm": heartbeat_alarm}
     for key, state in new_states.items():
         prev = _last_alarm_states.get(key)
         if prev is not None and prev != state:
             _incident_log.appendleft({"ts": _utcnow(), "event": f"{key} changed {prev} → {state}"})
+            if state == "ALARM":
+                _sim_state["incidents_today"] += 1
+                _save_state()
             if key == "error_alarm" and prev == "ALARM" and state == "OK":
+                _sim_state["hb_alarm_sim"] = None  # container recovered; clear sim override
                 _sim_state["auto_heals"] += 1
                 _sim_state["pipeline_stage"] = "ssm"
-                _sim_state["pipeline_expires_at"] = time.time() + 10
-                _incident_log.appendleft({"ts": _utcnow(), "event": "auto-healed: Lambda restarted container via SSM"})
+                _sim_state["pipeline_expires_at"] = time.time() + 5
+                _incident_log.appendleft({"ts": _utcnow(), "event": "Auto-healed — Lambda restarted container via SSM"})
+                _save_state()
     _last_alarm_states.update(new_states)
 
     seconds_since_heartbeat = (
@@ -218,6 +271,7 @@ def api_status() -> Response:
         "error_alarm": error_alarm,
         "error_rate": _sim_state["error_rate"],
         "auto_heals": _sim_state["auto_heals"],
+        "incidents_today": _sim_state["incidents_today"],
         "seconds_since_heartbeat": seconds_since_heartbeat,
         "incidents": list(_incident_log),
         "pipeline_stage": _sim_state["pipeline_stage"],
@@ -248,8 +302,10 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["app_status"] = "restarting"
         _sim_state["pipeline_stage"] = "alarm"
         _sim_state["pipeline_expires_at"] = time.time() + 90
+        _sim_state["hb_alarm_sim"] = "ALARM"
         _incident_log.appendleft({"ts": _utcnow(), "event": "silent crash triggered"})
         logging.error("api simulate: silent crash triggered")
+        _save_state()  # persist before exit so log and counter survive the crash
         os._exit(1)
 
     if mode == "human_needed":
@@ -270,9 +326,11 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["error_rate"] = 0
         _sim_state["pipeline_stage"] = "idle"
         _sim_state["pipeline_expires_at"] = 0.0
-        _sim_state["auto_heals"] += 1
+        _sim_state["incidents_today"] = 0
+        _sim_state["hb_alarm_sim"] = None
         _incident_log.clear()
         _api_cache.clear()
+        _save_state()
         return jsonify({"ok": True})
 
     return jsonify({"error": "unknown mode", "mode": mode}), 400
