@@ -195,6 +195,18 @@ def api_status() -> Response:
     except Exception as exc:
         extra["cw_error"] = str(exc)
 
+    new_states = {"error_alarm": error_alarm, "heartbeat_alarm": heartbeat_alarm}
+    for key, state in new_states.items():
+        prev = _last_alarm_states.get(key)
+        if prev is not None and prev != state:
+            _incident_log.appendleft({"ts": _utcnow(), "event": f"{key} changed {prev} → {state}"})
+            if key == "error_alarm" and prev == "ALARM" and state == "OK":
+                _sim_state["auto_heals"] += 1
+                _sim_state["pipeline_stage"] = "ssm"
+                _sim_state["pipeline_expires_at"] = time.time() + 10
+                _incident_log.appendleft({"ts": _utcnow(), "event": "auto-healed: Lambda restarted container via SSM"})
+    _last_alarm_states.update(new_states)
+
     seconds_since_heartbeat = (
         int(time.time() - _last_heartbeat_ts) if _last_heartbeat_ts is not None else None
     )

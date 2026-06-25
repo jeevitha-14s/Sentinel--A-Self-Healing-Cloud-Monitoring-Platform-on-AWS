@@ -17,6 +17,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .badge-ok{background:#14321f;color:#4ade80}
 .badge-alarm{background:#3a1515;color:#f87171}
 .badge-grey{background:#2a2a27;color:#a1a1aa}
+.badge-warn{background:#3a2e15;color:#fbbf24}
 
 /* Alarm cards */
 .alarm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
@@ -81,7 +82,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .btn.danger:hover{background:#2a1a1a}
 .btn.success{border-color:#1a5232;color:#4ade80}
 .btn.success:hover{background:#0d2b1a}
-.btn-fb{font-size:.7rem;color:#4ade80;margin-left:auto;opacity:0;transition:opacity .3s}
+.btn-fb{font-size:.7rem;color:#f59e0b;margin-left:auto;opacity:0;transition:opacity .3s}
 .btn-fb.show{opacity:1}
 
 /* Incident log */
@@ -94,6 +95,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .log-tag{font-size:.72rem;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .tag-ok{background:#14321f;color:#4ade80}
 .tag-warn{background:#3a2e15;color:#fbbf24}
+.tag-err{background:#3a1515;color:#f87171}
 
 /* Footer */
 .footer{display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid #34342f}
@@ -121,7 +123,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="card ok" id="card-heartbeat">
       <div class="c-name">&#9825; Heartbeat alarm</div>
       <div class="c-val ok" id="hb-alarm-val">OK</div>
-      <div class="c-meta">Missing data &times;2 &rarr; silent death caught</div>
+      <div class="c-meta">2 missed beats &rarr; catches silent crashes</div>
     </div>
   </div>
 
@@ -141,7 +143,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   <div class="stat-grid">
     <div class="stat"><div class="stat-label">Error rate</div><div class="stat-val" id="stat-errors">0</div><div class="stat-sub">since last reset</div></div>
-    <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div></div>
+    <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div><div class="stat-sub">lifetime restarts</div></div>
     <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div><div class="stat-sub">since last reset</div></div>
     <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div></div>
   </div>
@@ -186,7 +188,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       &#9650; Escalate<span class="btn-fb" id="fb-escalate" style="color:#fb923c">human needed</span>
     </button>
     <button class="btn success" onclick="simulate('heal_reset')">
-      &#10003; Heal &amp; Reset<span class="btn-fb" id="fb-heal">reset</span>
+      &#10003; Heal &amp; Reset<span class="btn-fb" id="fb-heal" style="color:#4ade80">reset</span>
     </button>
   </div>
 
@@ -197,7 +199,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   <div class="footer">
     <span class="foot-text" id="foot-text">Auto-refreshes every 5s</span>
-    <span class="foot-badge">sentinel-app &bull; 35.154.34.86</span>
+    <span class="foot-badge">sentinel-app &bull; ap-south-1</span>
   </div>
 
 </div>
@@ -235,7 +237,7 @@ function setAlarmCard(cardId, valId, state) {
 }
 
 /* Global badge */
-function setBadge(errAlarm, hbAlarm, pipelineStage, lost) {
+function setBadge(errAlarm, hbAlarm, pipelineStage, lost, watching) {
   var b = document.getElementById("global-badge");
   if (lost) {
     b.className = "badge badge-grey"; b.textContent = "Connection lost";
@@ -243,26 +245,29 @@ function setBadge(errAlarm, hbAlarm, pipelineStage, lost) {
     b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
   } else if (errAlarm === "ALARM" || hbAlarm === "ALARM") {
     b.className = "badge badge-alarm"; b.textContent = "Incident in progress";
+  } else if (watching) {
+    b.className = "badge badge-warn"; b.textContent = "Errors detected — watching";
   } else {
     b.className = "badge badge-ok"; b.textContent = "All systems healthy";
   }
 }
 
-/* Live heartbeat ticker (original approach — ticks every second) */
+/* Live heartbeat ticker — bar depletes as heartbeat ages (full = fresh, empty = alarm) */
 function updateHb() {
   var c = document.getElementById("hb-counter");
   var f = document.getElementById("hb-fill");
   var s = document.getElementById("hb-status");
   if (hbSeconds === null) {
     c.textContent = "--"; c.className = "hb-counter ok";
-    f.style.width = "0%"; s.textContent = "heartbeat not yet received";
+    f.style.width = "100%"; f.style.background = "#22c55e";
+    s.textContent = "heartbeat not yet received";
     return;
   }
-  c.textContent = hbSeconds + "s ago";
-  var pct = Math.min((hbSeconds / 120) * 100, 100);
+  c.textContent = hbSeconds === 0 ? "just now" : hbSeconds + "s ago";
+  var pct = Math.max(0, Math.round((1 - hbSeconds / 120) * 100));
   if (hbSeconds < 70) {
     c.className = "hb-counter ok"; f.style.background = "#22c55e";
-    f.style.width = Math.min((hbSeconds / 60) * 60, 60) + "%";
+    f.style.width = pct + "%";
     s.textContent = "healthy";
   } else if (hbSeconds < 120) {
     c.className = "hb-counter warn"; f.style.background = "#f59e0b";
@@ -270,7 +275,7 @@ function updateHb() {
     s.textContent = "first window missed — watching";
   } else {
     c.className = "hb-counter danger"; f.style.background = "#ef4444";
-    f.style.width = "100%";
+    f.style.width = "0%";
     s.textContent = "alarm firing — Lambda restarting";
   }
 }
@@ -314,19 +319,29 @@ function renderSparkline(containerId, history, maxVal, colorFn) {
 function hbColor(v) { return v < 70 ? "#22c55e" : v < 120 ? "#f59e0b" : "#ef4444"; }
 function errColor(v) { return v === 0 ? "#22c55e" : v < 10 ? "#f59e0b" : "#ef4444"; }
 
-/* Incident log (original slideIn animation) */
-function renderLog(incidents) {
+/* Incident log */
+function renderLog(incidents, errorAlarm) {
   var el = document.getElementById("log-list");
   if (!el) return;
   if (!incidents || incidents.length === 0) {
-    el.innerHTML = "<div class=\"log-empty\">No incidents yet &mdash; trigger one above</div>";
+    if (errorAlarm === "ALARM") {
+      el.innerHTML = "<div class=\"log-row\"><div><div class=\"log-event\">CloudWatch alarm firing &mdash; log cleared during recovery</div>" +
+                     "<div class=\"log-time\">alarm still resolving</div></div>" +
+                     "<span class=\"log-tag tag-warn\">active</span></div>";
+    } else {
+      el.innerHTML = "<div class=\"log-empty\">No incidents yet &mdash; trigger one above</div>";
+    }
     return;
   }
   el.innerHTML = incidents.slice(0, 10).map(function(inc) {
-    var human = inc.event.toLowerCase().indexOf("human") !== -1;
+    var ev = inc.event.toLowerCase();
+    var human = ev.indexOf("human") !== -1;
+    var isErr = ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1;
     var tag = human
       ? "<span class=\"log-tag tag-warn\">human needed</span>"
-      : "<span class=\"log-tag tag-ok\">logged</span>";
+      : isErr
+        ? "<span class=\"log-tag tag-err\">error</span>"
+        : "<span class=\"log-tag tag-ok\">logged</span>";
     var t = inc.ts.replace("T", " ").replace("Z", "");
     return "<div class=\"log-row\"><div><div class=\"log-event\">" + inc.event +
            "</div><div class=\"log-time\">" + t + "</div></div>" + tag + "</div>";
@@ -335,11 +350,18 @@ function renderLog(incidents) {
 
 /* Apply full API response to DOM */
 function applyData(d) {
-  var stage = d.pipeline_stage || "idle";
-  if (stage === "error") {
+  var stage = d.pipeline_stage || "flask_only";
+  if (stage === "idle") stage = "flask_only";
+  // Issue 3: remap both "error" and "alarm" server stages through live alarm state —
+  // CloudWatch + Alarm nodes light only when error_alarm is actually ALARM.
+  if (stage === "error" || stage === "alarm") {
     stage = (d.error_alarm === "ALARM") ? "alarm" : "flask_only";
   }
-  setBadge(d.error_alarm, d.heartbeat_alarm, stage, false);
+  // Issue 1: real alarm may fire without a sim trigger; advance to alarm stage regardless.
+  if (d.error_alarm === "ALARM" && stage === "flask_only") stage = "alarm";
+  // Amber "watching" state: errors fired but CloudWatch hasn't evaluated yet (~60s window)
+  var watching = (d.error_rate > 0 && d.error_alarm !== "ALARM" && d.heartbeat_alarm !== "ALARM" && stage !== "alert");
+  setBadge(d.error_alarm, d.heartbeat_alarm, stage, false, watching);
   setPipeline(stage);
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
@@ -367,7 +389,7 @@ function applyData(d) {
   renderSparkline("spark-hb",  hbHistory,  180, hbColor);
   renderSparkline("spark-err", errHistory, null, errColor);
 
-  renderLog(incidents);
+  renderLog(incidents, d.error_alarm);
 
   document.getElementById("foot-text").textContent =
     "Last updated: " + new Date().toLocaleTimeString() + " · auto-refreshes every 5s";
@@ -449,6 +471,7 @@ function simulate(mode) {
       body: JSON.stringify({mode: "heal_reset"})
     }).then(function(r) {
       if (!r.ok) return;
+      errHistory = [];
       feedback("fb-heal");
       setTimeout(poll, 400);
     }).catch(function() {});
