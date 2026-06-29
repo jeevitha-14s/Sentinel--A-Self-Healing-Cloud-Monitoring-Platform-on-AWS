@@ -169,7 +169,11 @@ def status() -> Response:
     extra: dict = {}
 
     try:
-        cw = boto3.client("cloudwatch", region_name=region)
+        cw = boto3.client(
+            "cloudwatch",
+            region_name=region,
+            config=boto3.session.Config(connect_timeout=3, read_timeout=5),
+        )
         resp = cw.describe_alarms(
             AlarmNames=["sentinel-app-errors", "sentinel-heartbeat-missing"]
         )
@@ -226,7 +230,11 @@ def api_status() -> Response:
     extra: dict = {}
 
     try:
-        cw = boto3.client("cloudwatch", region_name=region)
+        cw = boto3.client(
+            "cloudwatch",
+            region_name=region,
+            config=boto3.session.Config(connect_timeout=3, read_timeout=5),
+        )
         resp = cw.describe_alarms(
             AlarmNames=["sentinel-app-errors", "sentinel-heartbeat-missing"]
         )
