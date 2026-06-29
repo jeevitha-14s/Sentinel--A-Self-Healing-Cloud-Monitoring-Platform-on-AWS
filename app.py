@@ -364,6 +364,16 @@ def start_heartbeat() -> None:
     logging.info("heartbeat thread started")
 
 
+@app.get("/ready")
+def ready() -> ResponseReturnValue:
+    for t in threading.enumerate():
+        if t.name == "heartbeat" and t.is_alive():
+            return jsonify({"ready": True})
+    if os.environ.get("HEARTBEAT_ENABLED", "").lower() != "true":
+        return jsonify({"ready": True})
+    return jsonify({"ready": False, "reason": "heartbeat thread not running"}), 503
+
+
 @app.get("/dashboard")
 def dashboard() -> Response:
     return send_from_directory(
