@@ -352,7 +352,7 @@ def _heartbeat_loop() -> None:
             _last_heartbeat_ts = time.time()
         except Exception as exc:
             logging.error("heartbeat publish failed", extra={"error": str(exc)})
-        time.sleep(60)
+        time.sleep(int(os.environ.get("HEARTBEAT_INTERVAL_SECONDS", "60")))
 
 
 def start_heartbeat() -> None:
