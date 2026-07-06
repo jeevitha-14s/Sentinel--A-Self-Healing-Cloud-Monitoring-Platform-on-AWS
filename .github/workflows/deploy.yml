@@ -7,6 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
@@ -50,7 +53,8 @@ jobs:
               \"docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}\",
               \"docker stop sentinel-app || true\",
               \"docker rm   sentinel-app || true\",
-              \"docker run -d --name sentinel-app --restart unless-stopped -p 8000:8000 --log-driver awslogs --log-opt awslogs-region=${{ secrets.AWS_REGION }} --log-opt awslogs-group=/sentinel/app --log-opt awslogs-stream=sentinel-app -e HEARTBEAT_ENABLED=true ${{ secrets.ECR_REPO }}:${{ github.sha }}\"
+              \"docker run -d --name sentinel-app --restart unless-stopped -p 8000:8000 --log-driver awslogs --log-opt awslogs-region=${{ secrets.AWS_REGION }} --log-opt awslogs-group=/sentinel/app --log-opt awslogs-stream=sentinel-app -e HEARTBEAT_ENABLED=true ${{ secrets.ECR_REPO }}:${{ github.sha }}\",
+              \"docker image prune -af --filter until=24h\"
             ]" \
             --query Command.CommandId \
             --output text)
