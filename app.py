@@ -218,6 +218,7 @@ def api_status() -> Response:
     if _sim_state["pipeline_expires_at"] > 0 and _sim_state["pipeline_expires_at"] < now:
         _sim_state["pipeline_stage"] = "idle"
         _sim_state["app_status"] = "healthy"
+        _sim_state["hb_alarm_sim"] = None
         _sim_state["pipeline_expires_at"] = 0.0
         _api_cache.clear()
 

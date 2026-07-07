@@ -111,7 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   <div class="header">
     <div>
       <div class="h-title">Sentinel</div>
-      <div class="h-sub">Self-healing platform &bull; ap-south-1</div>
+      <div class="h-sub">Self-healing platform &mdash; fixes itself automatically</div>
     </div>
     <span class="badge badge-ok" id="global-badge">All systems healthy</span>
   </div>
@@ -120,12 +120,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="card ok" id="card-errors">
       <div class="c-name">&#9636; Error alarm</div>
       <div class="c-val ok" id="errors-val">OK</div>
-      <div class="c-meta">AppErrors &ge; 1 in 60s &rarr; Lambda restart</div>
+      <div class="c-meta">Watches for repeated errors &mdash; restarts the app if they spike</div>
     </div>
     <div class="card ok" id="card-heartbeat">
       <div class="c-name">&#9825; Heartbeat alarm</div>
       <div class="c-val ok" id="hb-alarm-val">OK</div>
-      <div class="c-meta">2 missed beats &rarr; catches silent crashes &bull; simulated in demo</div>
+      <div class="c-meta">Notices if the app goes quiet &mdash; catches crashes that don't throw errors</div>
     </div>
   </div>
 
@@ -133,7 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="hb-row">
       <div>
         <div class="hb-label">Last heartbeat</div>
-        <div class="hb-hint">publishes every 60s &bull; alarm fires after 2 missed</div>
+        <div class="hb-hint">Checks in every 60 seconds to prove it's alive</div>
       </div>
       <div>
         <div class="hb-counter ok" id="hb-counter">--</div>
@@ -146,67 +146,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   <div class="stat-grid">
     <div class="stat"><div class="stat-label">Error rate</div><div class="stat-val" id="stat-errors">0</div><div class="stat-sub">since last reset</div></div>
     <div class="stat"><div class="stat-label">Auto-heals</div><div class="stat-val" id="stat-heals">0</div><div class="stat-sub">this session</div></div>
-    <div class="stat"><div class="stat-label">Incidents today</div><div class="stat-val" id="stat-total">0</div><div class="stat-sub">since last reset</div></div>
+    <div class="stat"><div class="stat-label">Incidents</div><div class="stat-val" id="stat-total">0</div><div class="stat-sub">since last reset</div></div>
     <div class="stat"><div class="stat-label">Human needed</div><div class="stat-val" id="stat-human">0</div><div class="stat-sub">when auto-heal fails</div></div>
   </div>
 
-  <div class="sec-label">Self-heal pipeline</div>
+  <div class="sec-label">How it fixes itself</div>
   <div class="pipeline-wrap">
     <div class="pipeline">
-      <div class="pnode"><div class="pnode-box" id="pn-flask">Flask App</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-flask">The App</div></div>
       <span class="parrow" id="pa-0">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-cw">CloudWatch</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-cw">Monitoring</div></div>
       <span class="parrow" id="pa-1">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-alarm">Alarm</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-alarm">Problem Detected</div></div>
       <span class="parrow" id="pa-2">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-lambda">Lambda</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-lambda">Auto-Fixing</div></div>
       <span class="parrow" id="pa-3">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-ssm">SSM</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-ssm">Restarting</div></div>
       <span class="parrow" id="pa-4">&#8594;</span>
-      <div class="pnode"><div class="pnode-box" id="pn-alert" title="Not triggered — container auto-healed before escalation">Alert</div></div>
+      <div class="pnode"><div class="pnode-box" id="pn-alert" title="Not triggered — the app fixed itself before this was needed">Human Alerted</div></div>
     </div>
   </div>
 
   <div class="sparks-row">
     <div class="spark-card">
-      <div class="spark-label">Heartbeat age — last 10 polls (seconds)</div>
+      <div class="spark-label">Time since last check-in — last 10 checks</div>
       <div class="spark-bars" id="spark-hb"></div>
     </div>
     <div class="spark-card">
-      <div class="spark-label">Error rate — last 10 polls</div>
+      <div class="spark-label">Error activity — last 10 checks</div>
       <div class="spark-bars" id="spark-err"></div>
     </div>
   </div>
 
-  <div class="sec-label">Simulation controls</div>
+  <div class="sec-label">Try breaking it</div>
   <div class="btn-grid">
     <button class="btn danger" onclick="simulate('error_burst')">
-      &#9888; Error Burst<span class="btn-fb" id="fb-burst">triggered — watch alarm</span>
+      &#9888; Break It (Errors)<span class="btn-fb" id="fb-burst">5 errors just happened — watch it get caught</span>
     </button>
     <button class="btn danger" onclick="simulate('silent_crash')">
-      &#9632; Silent Crash<span class="btn-fb" id="fb-crash">crash triggered</span>
+      &#9632; Crash It Silently<span class="btn-fb" id="fb-crash">App just died — watch it come back</span>
     </button>
     <button class="btn danger" onclick="simulate('human_needed')" style="border-color:#7a4a0a;color:#fb923c">
-      &#9888; Escalate<span class="btn-fb" id="fb-escalate" style="color:#fb923c">human needed</span>
+      &#9888; Break It Badly<span class="btn-fb" id="fb-escalate" style="color:#fb923c">Couldn't self-fix — human notified</span>
     </button>
     <button class="btn success" onclick="simulate('heal_reset')">
-      &#8635; Heal &amp; Reset<span class="btn-fb" id="fb-heal" style="color:#4ade80">reset</span>
+      &#8635; Reset Demo<span class="btn-fb" id="fb-heal" style="color:#4ade80">Demo reset — ready to try again</span>
     </button>
   </div>
 
   <div class="sec-label">Incident log</div>
   <div class="log-legend">
-    <span class="log-tag tag-err">error</span>
-    <span class="log-tag tag-ok">resolved / logged</span>
-    <span class="log-tag tag-warn">human needed / recovering</span>
+    <span class="log-tag tag-err">Broke</span>
+    <span class="log-tag tag-ok">Fixed</span>
+    <span class="log-tag tag-warn">Needs Human</span>
   </div>
   <div class="log-list" id="log-list">
-    <div class="log-empty">No incidents yet &mdash; trigger one above</div>
+    <div class="log-empty">Nothing's happened yet &mdash; try a simulation above</div>
   </div>
 
   <div class="footer">
     <span class="foot-text" id="foot-text">Auto-refreshes every 5s</span>
-    <span class="foot-badge">sentinel-app &bull; ap-south-1</span>
+    <span class="foot-badge">Sentinel &bull; Live Demo</span>
   </div>
 
 </div>
@@ -230,6 +230,10 @@ var ALL_NODES  = ["pn-flask","pn-cw","pn-alarm","pn-lambda","pn-ssm","pn-alert"]
 var ALL_ARROWS = ["pa-0","pa-1","pa-2","pa-3","pa-4"];
 
 /* Alarm cards (original left-border style) */
+function alarmLabel(state) {
+  return state === "INSUFFICIENT_DATA" ? "Not checked yet" : state;
+}
+
 function setAlarmCard(cardId, valId, state) {
   var card = document.getElementById(cardId);
   var val  = document.getElementById(valId);
@@ -240,20 +244,22 @@ function setAlarmCard(cardId, valId, state) {
   } else {
     card.className = "card unknown"; val.className = "c-val unknown";
   }
-  val.textContent = state;
+  val.textContent = alarmLabel(state);
 }
 
 /* Global badge */
 function setBadge(errAlarm, hbAlarm, pipelineStage, lost, watching) {
   var b = document.getElementById("global-badge");
   if (lost) {
-    b.className = "badge badge-grey"; b.textContent = "Connection lost";
+    b.className = "badge badge-grey"; b.textContent = "App is restarting…";
   } else if (pipelineStage === "alert") {
-    b.className = "badge badge-alarm"; b.textContent = "Human intervention needed";
+    b.className = "badge badge-alarm"; b.textContent = "Couldn't fix itself — a human's been notified";
+  } else if (pipelineStage === "lambda" || pipelineStage === "ssm") {
+    b.className = "badge badge-alarm"; b.textContent = "Auto-fixing — restarting the app";
   } else if (errAlarm === "ALARM" || hbAlarm === "ALARM") {
-    b.className = "badge badge-alarm"; b.textContent = "Incident in progress";
+    b.className = "badge badge-alarm"; b.textContent = "Problem detected — fixing it now";
   } else if (watching) {
-    b.className = "badge badge-warn"; b.textContent = "Errors detected — watching";
+    b.className = "badge badge-warn"; b.textContent = "Errors happening — Sentinel is watching";
   } else {
     b.className = "badge badge-ok"; b.textContent = "All systems healthy";
   }
@@ -275,15 +281,15 @@ function updateHb() {
   if (hbSeconds < 61) {
     c.className = "hb-counter ok"; f.style.background = "#22c55e";
     f.style.width = pct + "%";
-    s.textContent = "healthy";
+    s.textContent = "checking in normally";
   } else if (hbSeconds < 120) {
     c.className = "hb-counter warn"; f.style.background = "#f59e0b";
     f.style.width = pct + "%";
-    s.textContent = "first window missed — watching";
+    s.textContent = "missed a check-in — watching closely";
   } else {
     c.className = "hb-counter danger"; f.style.background = "#ef4444";
     f.style.width = "0%";
-    s.textContent = "alarm firing — Lambda restarting";
+    s.textContent = "went quiet — restarting the app now";
   }
 }
 
@@ -326,17 +332,42 @@ function renderSparkline(containerId, history, maxVal, colorFn) {
 function hbColor(v) { return v < 70 ? "#22c55e" : v < 120 ? "#f59e0b" : "#ef4444"; }
 function errColor(v) { return v === 0 ? "#22c55e" : v < 10 ? "#f59e0b" : "#ef4444"; }
 
+/* Incident log — translation layer: raw backend event strings → plain English */
+var EVENT_TRANSLATIONS = {
+  "error burst triggered: 5 errors logged": "The app started throwing errors (5 in a row)",
+  "silent crash triggered": "The app crashed — silently, no error thrown",
+  "auto-heal failed — human needed": "Auto-fix couldn't solve it — flagged for a human",
+  "Auto-healed — Lambda restarted container via SSM": "Fixed automatically — restarted, no human involved",
+  "error_alarm changed OK → ALARM": "System noticed repeated errors",
+  "error_alarm changed ALARM → OK": "Errors stopped — back to normal",
+  "error_alarm changed OK → INSUFFICIENT_DATA": "Error monitoring temporarily unavailable",
+  "error_alarm changed INSUFFICIENT_DATA → OK": "Error monitoring back online — no errors",
+  "error_alarm changed ALARM → INSUFFICIENT_DATA": "Lost visibility into errors mid-incident",
+  "error_alarm changed INSUFFICIENT_DATA → ALARM": "Monitoring back online — errors detected",
+  "heartbeat_alarm changed OK → ALARM": "System noticed the app went silent",
+  "heartbeat_alarm changed ALARM → OK": "App is checking in again — back to normal",
+  "heartbeat_alarm changed OK → INSUFFICIENT_DATA": "Heartbeat monitoring temporarily unavailable",
+  "heartbeat_alarm changed INSUFFICIENT_DATA → OK": "Heartbeat monitoring back online — app is fine",
+  "heartbeat_alarm changed ALARM → INSUFFICIENT_DATA": "Lost visibility into heartbeat mid-incident",
+  "heartbeat_alarm changed INSUFFICIENT_DATA → ALARM": "Monitoring back online — app still silent",
+  "simulate-failure triggered: error flood": "The app started throwing errors (test trigger)",
+  "simulate-failure triggered: crash": "The app crashed (test trigger)"
+};
+function humanizeEvent(raw) {
+  return EVENT_TRANSLATIONS[raw] || raw;
+}
+
 /* Incident log */
 function renderLog(incidents, errorAlarm) {
   var el = document.getElementById("log-list");
   if (!el) return;
   if (!incidents || incidents.length === 0) {
     if (errorAlarm === "ALARM") {
-      el.innerHTML = "<div class=\"log-row\"><div><div class=\"log-event\">Container restarting &mdash; auto-heal in progress</div>" +
-                     "<div class=\"log-time\">alarm still active</div></div>" +
-                     "<span class=\"log-tag tag-warn\">recovering</span></div>";
+      el.innerHTML = "<div class=\"log-row\"><div><div class=\"log-event\">Fixing itself automatically</div>" +
+                     "<div class=\"log-time\">still recovering</div></div>" +
+                     "<span class=\"log-tag tag-warn\">Recovering</span></div>";
     } else {
-      el.innerHTML = "<div class=\"log-empty\">No incidents yet &mdash; trigger one above</div>";
+      el.innerHTML = "<div class=\"log-empty\">Nothing's happened yet &mdash; try a simulation above</div>";
     }
     return;
   }
@@ -346,14 +377,14 @@ function renderLog(incidents, errorAlarm) {
     var isResolved = ev.indexOf("→ ok") !== -1 || ev.indexOf("auto-healed") !== -1;
     var isErr = !isResolved && (ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1);
     var tag = human
-      ? "<span class=\"log-tag tag-warn\">human needed</span>"
+      ? "<span class=\"log-tag tag-warn\">Needs Human</span>"
       : isResolved
-        ? "<span class=\"log-tag tag-ok\">resolved</span>"
+        ? "<span class=\"log-tag tag-ok\">Fixed</span>"
         : isErr
-          ? "<span class=\"log-tag tag-err\">error</span>"
-          : "<span class=\"log-tag tag-ok\">logged</span>";
+          ? "<span class=\"log-tag tag-err\">Broke</span>"
+          : "<span class=\"log-tag tag-ok\">Fixed</span>";
     var t = inc.ts.replace("T", " ").replace("Z", " UTC");
-    return "<div class=\"log-row\"><div><div class=\"log-event\">" + inc.event +
+    return "<div class=\"log-row\"><div><div class=\"log-event\">" + humanizeEvent(inc.event) +
            "</div><div class=\"log-time\">" + t + "</div></div>" + tag + "</div>";
   }).join("");
 }
@@ -415,12 +446,12 @@ function poll() {
       if (recovered) {
         // Clear the "restarting…" feedback on the Silent Crash button
         var fbCrash = document.getElementById("fb-crash");
-        if (fbCrash) { fbCrash.classList.remove("show"); fbCrash.textContent = "crash triggered"; }
-        // Container came back — flash "Auto-healed ✓" for 1.5s then apply full data
+        if (fbCrash) { fbCrash.classList.remove("show"); fbCrash.textContent = "App just died — watch it come back"; }
+        // Container came back — flash "Auto-healed ✓" for 3.5s then apply full data
         var b = document.getElementById("global-badge");
         b.className = "badge badge-ok";
         b.textContent = "Auto-healed ✓";
-        setTimeout(function() { try { applyData(d); } catch(e) { console.error(e); } }, 1500);
+        setTimeout(function() { try { applyData(d); } catch(e) { console.error(e); } }, 3500);
       } else {
         try { applyData(d); } catch(e) { console.error(e); }
       }
@@ -457,7 +488,7 @@ function simulate(mode) {
   if (mode === "silent_crash") {
     var fbCrash = document.getElementById("fb-crash");
     if (fbCrash) {
-      fbCrash.textContent = "crash triggered";
+      fbCrash.textContent = "App just died — watch it come back";
       fbCrash.classList.add("show");
       setTimeout(function() {
         if (fbCrash.classList.contains("show")) fbCrash.textContent = "restarting…";
