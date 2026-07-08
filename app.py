@@ -59,6 +59,7 @@ app = Flask(__name__)
 _last_heartbeat_ts: float | None = None
 _status_cache: dict = {}
 _last_alarm_states: dict = {}
+_alarm_lock = threading.Lock()
 _incident_log: deque = deque(maxlen=10)
 _sim_state: dict = {
     "error_rate": 0,
@@ -264,20 +265,21 @@ def api_status() -> Response:
         heartbeat_alarm = _sim_state["hb_alarm_sim"]
 
     new_states = {"error_alarm": error_alarm, "heartbeat_alarm": heartbeat_alarm}
-    for key, state in new_states.items():
-        prev = _last_alarm_states.get(key)
-        if prev is not None and prev != state:
-            _incident_log.appendleft({"ts": _utcnow(), "event": f"{key} changed {prev} → {state}"})
-            if state == "ALARM":
-                _sim_state["incidents_today"] += 1
-                _save_state()
-            if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK" and _sim_state["pipeline_stage"] != "alert":
-                _sim_state["auto_heals"] += 1
-                _sim_state["pipeline_stage"] = "ssm"
-                _sim_state["pipeline_expires_at"] = time.time() + 15
-                _incident_log.appendleft({"ts": _utcnow(), "event": "Auto-healed — Lambda restarted container via SSM"})
-                _save_state()
-    _last_alarm_states.update(new_states)
+    with _alarm_lock:
+        for key, state in new_states.items():
+            prev = _last_alarm_states.get(key)
+            if prev is not None and prev != state:
+                _incident_log.appendleft({"ts": _utcnow(), "event": f"{key} changed {prev} → {state}"})
+                if state == "ALARM":
+                    _sim_state["incidents_today"] += 1
+                    _save_state()
+                if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK" and _sim_state["pipeline_stage"] != "alert":
+                    _sim_state["auto_heals"] += 1
+                    _sim_state["pipeline_stage"] = "ssm"
+                    _sim_state["pipeline_expires_at"] = time.time() + 15
+                    _incident_log.appendleft({"ts": _utcnow(), "event": "Auto-healed — Lambda restarted container via SSM"})
+                    _save_state()
+        _last_alarm_states.update(new_states)
 
     seconds_since_heartbeat = (
         int(time.time() - _last_heartbeat_ts) if _last_heartbeat_ts is not None else None
