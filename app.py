@@ -94,6 +94,7 @@ def _save_state() -> None:
                     "incident_log": list(_incident_log),
                     "hb_alarm_sim": _sim_state.get("hb_alarm_sim"),
                     "auto_heals": _sim_state.get("auto_heals", 0),
+                    "last_alarm_states": _last_alarm_states,
                 },
                 f,
             )
@@ -109,6 +110,10 @@ if isinstance(_saved.get("auto_heals"), int):
     _sim_state["auto_heals"] = _saved["auto_heals"]
 if _saved.get("hb_alarm_sim") in ("ALARM", "OK"):
     _sim_state["hb_alarm_sim"] = _saved["hb_alarm_sim"]
+if isinstance(_saved.get("last_alarm_states"), dict):
+    for _key, _val in _saved["last_alarm_states"].items():
+        if _key in ("error_alarm", "heartbeat_alarm") and _val in ("OK", "ALARM", "INSUFFICIENT_DATA"):
+            _last_alarm_states[_key] = _val
 for _entry in reversed(_saved.get("incident_log") or []):
     if isinstance(_entry, dict) and "ts" in _entry and "event" in _entry:
         _incident_log.appendleft(_entry)
@@ -263,7 +268,7 @@ def api_status() -> Response:
             if state == "ALARM":
                 _sim_state["incidents_today"] += 1
                 _save_state()
-            if key == "error_alarm" and prev == "ALARM" and state == "OK":
+            if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK":
                 _sim_state["hb_alarm_sim"] = None  # container recovered; clear sim override
                 _sim_state["auto_heals"] += 1
                 _sim_state["pipeline_stage"] = "ssm"
@@ -316,7 +321,6 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["pipeline_expires_at"] = time.time() + 90
         _sim_state["hb_alarm_sim"] = "ALARM"
         _incident_log.appendleft({"ts": _utcnow(), "event": "silent crash triggered"})
-        logging.error("api simulate: silent crash triggered")
         _save_state()  # persist before exit so log and counter survive the crash
         os._exit(1)
 
