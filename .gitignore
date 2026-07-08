@@ -33,6 +33,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# Local demo screenshots, not for the repo
+Silentcrashdemo/
+
 # IDE
 .vscode/settings.json
 .idea/
