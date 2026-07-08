@@ -220,6 +220,7 @@ var wasConnected = true;
 var PIPELINE_ACTIVE = {
   idle:       [],
   flask_only: ["pn-flask"],
+  watching:   ["pn-flask","pn-cw"],
   error:      ["pn-flask","pn-cw"],
   alarm:      ["pn-flask","pn-cw","pn-alarm"],
   lambda:     ["pn-flask","pn-cw","pn-alarm","pn-lambda"],
@@ -391,6 +392,16 @@ function renderLog(incidents, errorAlarm) {
 
 /* Apply full API response to DOM */
 function applyData(d) {
+  // Safety net: if app_status confirms healthy, clear any leftover "restarting…" feedback
+  // on the Crash button even if the poll that caught the actual outage was missed.
+  if (d.app_status !== "restarting") {
+    var fbCrashSafety = document.getElementById("fb-crash");
+    if (fbCrashSafety && fbCrashSafety.classList.contains("show")) {
+      fbCrashSafety.classList.remove("show");
+      fbCrashSafety.textContent = "App just died — watch it come back";
+    }
+  }
+
   var stage = d.pipeline_stage || "flask_only";
   if (stage === "idle") stage = "flask_only";
   // Issue 3: remap both "error" and "alarm" server stages through live alarm state —
@@ -402,8 +413,9 @@ function applyData(d) {
   if (d.error_alarm === "ALARM" && stage === "flask_only") stage = "alarm";
   // Amber "watching" state: errors fired but CloudWatch hasn't evaluated yet (~60s window)
   var watching = (d.error_rate > 0 && d.error_alarm !== "ALARM" && d.heartbeat_alarm !== "ALARM" && stage !== "alert");
+  var pipelineStage = (watching && stage === "flask_only") ? "watching" : stage;
   setBadge(d.error_alarm, d.heartbeat_alarm, stage, false, watching);
-  setPipeline(stage);
+  setPipeline(pipelineStage);
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
@@ -523,6 +535,8 @@ function simulate(mode) {
     }).then(function(r) {
       if (!r.ok) return;
       errHistory = [];
+      var fbCrashReset = document.getElementById("fb-crash");
+      if (fbCrashReset) { fbCrashReset.classList.remove("show"); fbCrashReset.textContent = "App just died — watch it come back"; }
       feedback("fb-heal");
       setTimeout(poll, 400);
     }).catch(function() {});

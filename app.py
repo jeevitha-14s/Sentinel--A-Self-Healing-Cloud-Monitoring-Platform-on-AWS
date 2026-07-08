@@ -93,6 +93,7 @@ def _save_state() -> None:
                     "incidents_today": _sim_state.get("incidents_today", 0),
                     "incident_log": list(_incident_log),
                     "hb_alarm_sim": _sim_state.get("hb_alarm_sim"),
+                    "auto_heals": _sim_state.get("auto_heals", 0),
                 },
                 f,
             )
@@ -104,6 +105,8 @@ def _save_state() -> None:
 _saved = _load_state()
 if isinstance(_saved.get("incidents_today"), int):
     _sim_state["incidents_today"] = _saved["incidents_today"]
+if isinstance(_saved.get("auto_heals"), int):
+    _sim_state["auto_heals"] = _saved["auto_heals"]
 if _saved.get("hb_alarm_sim") in ("ALARM", "OK"):
     _sim_state["hb_alarm_sim"] = _saved["hb_alarm_sim"]
 for _entry in reversed(_saved.get("incident_log") or []):
@@ -319,7 +322,7 @@ def api_simulate() -> ResponseReturnValue:
 
     if mode == "human_needed":
         _sim_state["pipeline_stage"] = "alert"
-        _sim_state["pipeline_expires_at"] = time.time() + 90
+        _sim_state["pipeline_expires_at"] = 0.0  # persists until Reset Demo — no auto-clear TTL
         _incident_log.appendleft({"ts": _utcnow(), "event": "auto-heal failed — human needed"})
         _api_cache.clear()
         logging.error("escalation: auto-heal failed, human needed")
