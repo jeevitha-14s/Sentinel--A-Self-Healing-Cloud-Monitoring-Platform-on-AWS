@@ -348,7 +348,7 @@ def api_simulate() -> ResponseReturnValue:
                 Message="Sentinel: auto-remediation failed — human intervention required. Check the dashboard.",
             )
         except Exception:
-            logging.exception("failed to publish human-needed alert to SNS")
+            logging.warning("failed to publish human-needed alert to SNS", exc_info=True)
 
         return jsonify({"triggered": "human_needed"})
 
