@@ -331,7 +331,25 @@ def api_simulate() -> ResponseReturnValue:
         _sim_state["pipeline_expires_at"] = 0.0  # persists until Reset Demo — no auto-clear TTL
         _incident_log.appendleft({"ts": _utcnow(), "event": "auto-heal failed — human needed"})
         _api_cache.clear()
-        logging.error("escalation: auto-heal failed, human needed")
+        logging.warning("escalation: auto-heal failed, human needed")
+
+        import boto3  # lazy — mirrors _heartbeat_loop pattern
+
+        region = os.environ.get("AWS_DEFAULT_REGION", "ap-south-1")
+        topic_arn = os.environ.get("ALERTS_TOPIC_ARN", "arn:aws:sns:ap-south-1:262439760394:sentinel-alerts")
+        try:
+            sns = boto3.client(
+                "sns",
+                region_name=region,
+                config=boto3.session.Config(connect_timeout=3, read_timeout=5),
+            )
+            sns.publish(
+                TopicArn=topic_arn,
+                Message="Sentinel: auto-remediation failed — human intervention required. Check the dashboard.",
+            )
+        except Exception:
+            logging.exception("failed to publish human-needed alert to SNS")
+
         return jsonify({"triggered": "human_needed"})
 
     if mode == "pipeline_reset":
