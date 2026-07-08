@@ -271,7 +271,7 @@ def api_status() -> Response:
             if state == "ALARM":
                 _sim_state["incidents_today"] += 1
                 _save_state()
-            if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK":
+            if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK" and _sim_state["pipeline_stage"] != "alert":
                 _sim_state["auto_heals"] += 1
                 _sim_state["pipeline_stage"] = "ssm"
                 _sim_state["pipeline_expires_at"] = time.time() + 15
