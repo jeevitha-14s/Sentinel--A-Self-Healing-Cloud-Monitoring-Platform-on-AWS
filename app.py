@@ -256,7 +256,10 @@ def api_status() -> Response:
         extra["cw_error"] = str(exc)
 
     # Apply hb_alarm_sim override so the demo can show HB alarm ALARM during a silent crash.
-    # Cleared by: heal_reset, or error_alarm ALARM→OK (recovery detected in the loop below).
+    # Cleared only once both real alarms have genuinely resolved — checked against the
+    # real values directly, never the overridden one, to avoid a self-referential deadlock.
+    if _sim_state["hb_alarm_sim"] is not None and heartbeat_alarm == "OK" and error_alarm == "OK":
+        _sim_state["hb_alarm_sim"] = None
     if _sim_state["hb_alarm_sim"] is not None:
         heartbeat_alarm = _sim_state["hb_alarm_sim"]
 
@@ -269,7 +272,6 @@ def api_status() -> Response:
                 _sim_state["incidents_today"] += 1
                 _save_state()
             if key in ("error_alarm", "heartbeat_alarm") and prev == "ALARM" and state == "OK":
-                _sim_state["hb_alarm_sim"] = None  # container recovered; clear sim override
                 _sim_state["auto_heals"] += 1
                 _sim_state["pipeline_stage"] = "ssm"
                 _sim_state["pipeline_expires_at"] = time.time() + 15

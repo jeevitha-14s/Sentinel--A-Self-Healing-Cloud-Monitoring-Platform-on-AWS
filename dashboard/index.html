@@ -399,7 +399,7 @@ function renderLog(incidents, errorAlarm) {
     var ev = inc.event.toLowerCase();
     var human = ev.indexOf("human") !== -1;
     var isResolved = ev.indexOf("→ ok") !== -1 || ev.indexOf("auto-healed") !== -1;
-    var isErr = !isResolved && (ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1);
+    var isErr = !isResolved && (ev.indexOf("error") !== -1 || ev.indexOf("crash") !== -1 || ev.indexOf("→ alarm") !== -1);
     var tag = human
       ? "<span class=\"log-tag tag-warn\">Needs Human</span>"
       : isResolved
