@@ -128,6 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="card ok" id="card-errors">
       <div class="c-name">&#9636; Error alarm</div>
       <div class="c-val ok" id="errors-val">OK</div>
+      <div class="c-meta" id="errors-sub">no errors in last 60s window</div>
       <div class="c-meta">Watches for repeated errors &mdash; restarts the app if they spike</div>
     </div>
     <div class="card ok" id="card-heartbeat">
@@ -446,6 +447,10 @@ function applyData(d) {
 
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
+  document.getElementById("errors-sub").textContent =
+    d.error_alarm === "ALARM" ? "errors detected in last 60s window" :
+    d.error_alarm === "OK" ? "no errors in last 60s window" :
+    "not checked yet";
 
   if (d.seconds_since_heartbeat !== null && d.seconds_since_heartbeat !== undefined) {
     startTicker(d.seconds_since_heartbeat);
