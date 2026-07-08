@@ -84,7 +84,11 @@ curl "http://<EC2_IP>:8000/simulate-failure?mode=crash"
 
 - Container process calls `os._exit(1)` — no logs, no errors, just gone
 - Heartbeat stops publishing to CloudWatch
-- After 2 × 60s evaluation periods with missing data, alarm breaches
+- Alarm requires 2 × 60s missing-data periods to breach, but CloudWatch's own
+  evaluation delay for `TreatMissingData=breaching` alarms means this takes
+  **~7-8 minutes in practice**, not ~2 minutes — verified end-to-end on
+  2026-07-08 (crash at 09:40:00 UTC, alarm at 09:47:22, healed by 09:48:22).
+  Budget for this when timing a live demo.
 - Same Lambda → SSM → email path fires
 - Email arrives without a single error ever being logged
 

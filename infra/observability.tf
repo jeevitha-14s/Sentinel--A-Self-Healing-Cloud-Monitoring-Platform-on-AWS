@@ -33,6 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "app_errors" {
   alarm_actions = [aws_sns_topic.incidents.arn]
 }
 
+
 resource "aws_cloudwatch_metric_alarm" "heartbeat_missing" {
   alarm_name        = "sentinel-heartbeat-missing"
   alarm_description = "App silent death: heartbeat stopped. TreatMissingData=breaching fires the same heal path as errors — no separate Lambda needed."
@@ -42,6 +43,7 @@ resource "aws_cloudwatch_metric_alarm" "heartbeat_missing" {
   statistic           = "Average"
   period              = 60
   evaluation_periods  = 2
+  datapoints_to_alarm = 2
   threshold           = 1
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"
