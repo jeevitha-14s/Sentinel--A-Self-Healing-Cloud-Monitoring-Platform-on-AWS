@@ -130,6 +130,21 @@ resource "aws_iam_role_policy" "cloudwatch_describe" {
   })
 }
 
+resource "aws_iam_role_policy" "sns_publish_alerts" {
+  name = "sns-publish-alerts"
+  role = aws_iam_role.sentinel_ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "SNSPublishAlerts"
+      Effect   = "Allow"
+      Action   = "sns:Publish"
+      Resource = aws_sns_topic.alerts.arn
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "sentinel_ec2" {
   name = "sentinel-ec2"
   role = aws_iam_role.sentinel_ec2.name
