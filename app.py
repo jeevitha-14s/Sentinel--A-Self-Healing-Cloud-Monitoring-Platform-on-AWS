@@ -266,8 +266,10 @@ def api_status() -> Response:
 
     new_states = {"error_alarm": error_alarm, "heartbeat_alarm": heartbeat_alarm}
     with _alarm_lock:
+        prev_states = dict(_last_alarm_states)
+        _last_alarm_states.update(new_states)
         for key, state in new_states.items():
-            prev = _last_alarm_states.get(key)
+            prev = prev_states.get(key)
             if prev is not None and prev != state:
                 _incident_log.appendleft({"ts": _utcnow(), "event": f"{key} changed {prev} → {state}"})
                 if state == "ALARM":
