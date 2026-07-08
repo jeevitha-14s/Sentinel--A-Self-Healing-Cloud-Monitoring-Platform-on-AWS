@@ -267,7 +267,7 @@ def api_status() -> Response:
                 _sim_state["hb_alarm_sim"] = None  # container recovered; clear sim override
                 _sim_state["auto_heals"] += 1
                 _sim_state["pipeline_stage"] = "ssm"
-                _sim_state["pipeline_expires_at"] = time.time() + 5
+                _sim_state["pipeline_expires_at"] = time.time() + 15
                 _incident_log.appendleft({"ts": _utcnow(), "event": "Auto-healed — Lambda restarted container via SSM"})
                 _save_state()
     _last_alarm_states.update(new_states)
