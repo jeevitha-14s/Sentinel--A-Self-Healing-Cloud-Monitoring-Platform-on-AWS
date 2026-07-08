@@ -448,8 +448,10 @@ function applyData(d) {
   setAlarmCard("card-errors",    "errors-val",   d.error_alarm    || "?");
   setAlarmCard("card-heartbeat", "hb-alarm-val", d.heartbeat_alarm || "?");
   document.getElementById("errors-sub").textContent =
+    (d.error_rate > 0 && d.error_alarm !== "ALARM") ? "errors detected — alarm evaluating" :
     d.error_alarm === "ALARM" ? "errors detected in last 60s window" :
-    d.error_alarm === "OK" ? "no errors in last 60s window" :
+    (d.error_rate === 0 && d.error_alarm === "OK") ? "no errors in last 60s window" :
+    d.error_alarm === "INSUFFICIENT_DATA" ? "not checked yet" :
     "not checked yet";
 
   if (d.seconds_since_heartbeat !== null && d.seconds_since_heartbeat !== undefined) {
