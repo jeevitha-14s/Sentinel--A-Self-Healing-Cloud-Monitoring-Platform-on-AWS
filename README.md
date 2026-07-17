@@ -230,18 +230,3 @@ If Lambda fails after SNS retries are exhausted, the failure is currently lost. 
 **CloudWatch Dashboard**
 A live dashboard showing both alarm states, the heartbeat metric, and recent Lambda invocations would make the platform self-explanatory without console access.
 
----
-
-## Interview sentences
-
-> "I assumed my monitoring would fail, and I monitored for that too."
-
-The heartbeat alarm catches silent app death — a container that exits with no error output, which the error alarm would completely miss. `TreatMissingData=breaching` means silence is treated as a threshold violation, not as insufficient data.
-
-> "Each IAM permission was added in response to a real AccessDenied error."
-
-`docs/iam-scratch.md` maps every permission to the exact error that prompted it. No pre-granted broad policies, no wildcards except where AWS does not support resource-level scope.
-
-> "The alarm fires once per incident — dedup is free, no state management needed."
-
-CloudWatch alarms are state machines. The SNS action fires on the OK→ALARM *transition*. A sustained error condition keeps the alarm in ALARM without re-triggering. The state machine is the dedup — no DynamoDB required.
