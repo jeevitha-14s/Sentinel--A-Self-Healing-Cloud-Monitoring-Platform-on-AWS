@@ -351,11 +351,3 @@ This project demonstrates practical experience with:
 * Production-style System Design
 
 ---
-
-# Why Sentinel?
-
-Most monitoring systems stop after detecting failures.
-
-**Sentinel goes one step further—it automatically recovers from them.**
-
-By combining **CloudWatch, Lambda, SSM, SNS, Docker, Terraform, and GitHub Actions**, Sentinel demonstrates a complete self-healing cloud platform that can detect, remediate, and notify with minimal human intervention.
