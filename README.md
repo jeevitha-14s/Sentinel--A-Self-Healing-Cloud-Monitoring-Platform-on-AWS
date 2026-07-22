@@ -7,7 +7,7 @@
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC)
 ![Docker](https://img.shields.io/badge/Docker-Container-2496ED)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF)
-![License](https://img.shields.io/badge/License-MIT-green)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
