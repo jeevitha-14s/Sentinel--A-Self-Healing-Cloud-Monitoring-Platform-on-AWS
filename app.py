@@ -2,11 +2,13 @@ import datetime
 import json
 import logging
 import os
+import signal
 import sys
 import threading
 import time
 import uuid
 from collections import deque
+from types import FrameType
 
 import click
 from flask import Flask, Response, g, jsonify, request, send_from_directory
@@ -404,6 +406,13 @@ def start_heartbeat() -> None:
     logging.info("heartbeat thread started")
 
 
+def _handle_sigterm(signum: int, frame: FrameType | None) -> None:
+    # Python runs as PID 1 in the container, which ignores SIGTERM by default;
+    # without this, `docker restart` waits its full 10s timeout before SIGKILL.
+    logging.info("SIGTERM received, shutting down")
+    sys.exit(0)
+
+
 @app.get("/ready")
 def ready() -> ResponseReturnValue:
     for t in threading.enumerate():
@@ -423,5 +432,6 @@ def dashboard() -> Response:
 
 if __name__ == "__main__":
     configure_logging()
+    signal.signal(signal.SIGTERM, _handle_sigterm)
     start_heartbeat()
     app.run(host="0.0.0.0", port=8000)
